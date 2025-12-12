@@ -60,6 +60,7 @@
 
         h1 { margin-bottom: 5px; font-size: 2.5rem; letter-spacing: 1px; }
 
+        /* REPOSITIONED DISPLAY */
         #target-note-display {
             font-size: 5em; 
             font-weight: 900;
@@ -70,6 +71,14 @@
             margin: 10px 0;
             color: var(--text-color); 
             text-shadow: 2px 2px 0px var(--panel-shadow);
+        }
+        
+        #message-display {
+            font-size: 1.3em; 
+            font-weight: bold; 
+            min-height: 1.5em; 
+            margin: 10px 0; 
+            color: #6b7280;
         }
 
         /* --- CONTROL PANEL --- */
@@ -159,7 +168,7 @@
         #hint-mode-toggle.active { background-color: #9333ea; box-shadow: 0 4px 0 #6b21a8; }
         #next-question { background-color: #0f172a; box-shadow: 0 4px 0 #000; }
 
-        /* --- FRETBOARD VISUALS (Restored/Checked) --- */
+        /* --- FRETBOARD VISUALS --- */
         #fretboard-wrapper {
             display: flex; 
             justify-content: center;
@@ -261,19 +270,17 @@
         
         .cof-note-label {
             position: absolute;
-            font-size: 1.4em; /* Increased size for visibility */
+            font-size: 1.4em; 
             font-weight: 900;
             color: var(--text-color);
             text-shadow: 1px 1px 1px var(--panel-bg);
             z-index: 10;
             
-            /* Center the text within the wedge */
             top: 25px; 
             left: 25px;
             transform: rotate(15deg) translate(140px, -10px); 
             transform-origin: 0 0;
             
-            /* Ensure the text itself doesn't block the click listener on the wedge */
             pointer-events: none; 
         }
 
@@ -286,7 +293,7 @@
             height: 150px;
             background: var(--fretboard-bg);
             border-radius: 50%;
-            z-index: 20; /* Ensure center is on top of all wedges */
+            z-index: 20; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -326,11 +333,6 @@
                     Streak: <span id="streak-display" style="color:var(--highlight-blue)">0</span> 🔥
                 </div>
             </div>
-
-            <div id="target-note-display">Select a Mode</div>
-            <p id="message-display" style="font-size: 1.3em; font-weight: bold; min-height: 1.5em; margin: 10px 0; color: #6b7280;">
-                Choose a quiz type or Free Play.
-            </p>
 
             <div id="theory-panel">
                 <h3 id="theory-title">Theory Lesson</h3>
@@ -391,6 +393,9 @@
             </div>
         </div>
     </header>
+
+    <div id="target-note-display">Select a Mode</div>
+    <p id="message-display">Choose a quiz type or Free Play.</p>
     
     <div id="fretboard-wrapper">
         <div id="fretboard-container">
@@ -953,5 +958,4 @@
 
     </script>
 </body>
-
 </html>
