@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Fretboard Trainer</title>
+    <style>
+        /* --- CSS VARIABLES FOR THEMING --- */
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #1a1a1a;
+            --panel-bg: #ffffff;
+            --panel-shadow: rgba(0,0,0,0.1);
+            --fretboard-bg: #3d2616;
+            --fretboard-border: #1a1008;
+            --string-color: #a3a3a3;
+            --fret-wire: #bdafa6;
+            --nut-color: #e5e5e5; 
+            --marker-color: #e5e5e5;
+            --highlight-blue: #2563eb;
+            --highlight-orange: #ea580c;
+            --theory-bg: #fefce8;
+            --theory-border: #eab308;
+            --theory-text: #422006;
+            --cof-ring-color: #e0e0e0;
+            --cof-wedge-bg: #f7f7f7;
+            --cof-border: #4a4a4a;
+        }
+
+        /* DARK MODE OVERRIDES */
+        body.dark-mode {
+            --bg-color: #111827;
+            --text-color: #f3f4f6;
+            --panel-bg: #1f2937;
+            --panel-shadow: rgba(0,0,0,0.5);
+            --fretboard-bg: #291810;
+            --fretboard-border: #000000;
+            --string-color: #6b7280;
+            --fret-wire: #6b7280;
+            --nut-color: #4b5563; 
+            --marker-color: #9ca3af;
+            --theory-bg: #422006;
+            --theory-border: #a16207;
+            --theory-text: #fefce8;
+            --cof-ring-color: #374151;
+            --cof-wedge-bg: #2d3748;
+            --cof-border: #9ca3af;
+        }
+
+        /* --- CORE LAYOUT --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        h1 { margin-bottom: 5px; font-size: 2.5rem; letter-spacing: 1px; }
+
+        #target-note-display {
+            font-size: 5em; 
+            font-weight: 900;
+            min-height: 1.2em; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+            color: var(--text-color); 
+            text-shadow: 2px 2px 0px var(--panel-shadow);
+        }
+
+        /* --- CONTROL PANEL --- */
+        .controls-wrapper {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--panel-shadow);
+            margin-bottom: 20px;
+            display: inline-block;
+            max-width: 1200px;
+            width: 95%;
+            transition: background 0.3s;
+        }
+
+        .controls-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 2px solid var(--fret-wire);
+        }
+
+        .controls-group.quiz-modes {
+            border-top: none;
+            margin-top: 0;
+        }
+
+        .controls-group.settings-tools {
+            justify-content: space-around;
+            padding-top: 15px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 8px;
+            border: 1px solid var(--fret-wire);
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        /* --- UI ELEMENTS (Buttons/Selects) --- */
+        select {
+            padding: 10px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            border: 2px solid #3b82f6;
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 1.1em;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #3b82f6; 
+            color: white;
+            transition: all 0.2s;
+            box-shadow: 0 4px 0 #1d4ed8;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: none; }
+        button:hover { filter: brightness(110%); }
+
+        /* Specific Buttons */
+        #theme-toggle { background-color: #94a3b8; box-shadow: 0 4px 0 #475569; padding: 10px 15px;}
+        #free-play-btn { background-color: #10b981; box-shadow: 0 4px 0 #047857; } 
+        #cof-quiz-btn { background-color: #f59e0b; box-shadow: 0 4px 0 #d97706; } 
+        #clear-board-btn { background-color: #dc2626; box-shadow: 0 4px 0 #991b1b; } 
+        #hint-mode-toggle { background-color: #64748b; box-shadow: 0 4px 0 #334155; }
+        #hint-mode-toggle.active { background-color: #9333ea; box-shadow: 0 4px 0 #6b21a8; }
+        #next-question { background-color: #0f172a; box-shadow: 0 4px 0 #000; }
+
+        /* --- FRETBOARD VISUALS (Restored/Checked) --- */
+        #fretboard-wrapper {
+            display: flex; 
+            justify-content: center;
+            margin-top: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        #fretboard-container {
+            background-color: var(--fretboard-bg);
+            border: 6px solid var(--fretboard-border);
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: inline-block;
+            position: relative;
+        }
+        
+        #fretboard {
+            display: grid;
+            grid-auto-flow: column;
+            white-space: nowrap;
+        }
+
+        .fret-column { display: grid; grid-template-rows: repeat(6, 50px); width: 55px; border-right: 3px solid var(--fret-wire); position: relative; }
+        .nut-column { width: 40px; background-color: var(--nut-color); border-right: 6px solid #666; display: grid; grid-template-rows: repeat(6, 50px); }
+        .marker { position: absolute; background-color: var(--marker-color); border-radius: 50%; z-index: 1; left: 50%; transform: translateX(-50%); box-shadow: 1px 1px 2px rgba(0,0,0,0.5); pointer-events: none; }
+        .single-marker { width: 18px; height: 18px; top: 150px; margin-top: -9px; }
+        .double-marker-top { width: 18px; height: 18px; top: 75px; margin-top: -9px; }
+        .double-marker-bottom { width: 18px; height: 18px; top: 225px; margin-top: -9px; }
+        .string-cell { width: 100%; height: 50px; display: flex; justify-content: center; align-items: center; position: relative; box-sizing: border-box; border-bottom: 1px solid rgba(0,0,0,0.2); }
+        .string-line { position: absolute; top: 50%; left: 0; right: 0; background-color: var(--string-color); transform: translateY(-50%); z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .string-0 { height: 1.5px; } .string-1 { height: 2px; } .string-2 { height: 2.5px; } .string-3 { height: 3px; } .string-4 { height: 4px; } .string-5 { height: 5px; } 
+        .note-spot { width: 40px; height: 40px; background-color: transparent; border-radius: 50%; position: relative; z-index: 10; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2em; font-weight: 900; color: white; border: 2px solid transparent; transition: transform 0.1s; }
+        .nut-column .note-spot { color: var(--text-color); text-shadow: none; }
+        .note-spot:hover { background-color: rgba(255,255,255,0.2); transform: scale(1.15); }
+        .correct { background-color: var(--highlight-blue) !important; border: 3px solid white; box-shadow: 0 0 15px var(--highlight-blue); }
+        .correct::after { content: '✓'; }
+        .incorrect { background-color: var(--highlight-orange) !important; border: 3px solid white; }
+        .incorrect::after { content: '✕'; }
+        .revealed { background-color: #facc15 !important; color: black !important; border: 2px solid black; }
+        .sequence-correct { background-color: #9333ea !important; border: 2px solid white; }
+        .hint-mode-on { background-color: #475569; color: white; opacity: 1; border: 1px solid #94a3b8; }
+        .target-note { background-color: #db2777 !important; border: 3px solid white; box-shadow: 0 0 15px #db2777; }
+
+
+        /* --- CIRCLE OF FIFTHS VISUALS --- */
+        #cof-wrapper {
+            display: none; 
+            justify-content: center;
+            margin: 40px auto;
+            max-width: 600px;
+        }
+
+        .cof-ring {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: var(--cof-ring-color);
+            box-shadow: 0 4px 15px var(--panel-shadow);
+        }
+
+        .cof-wedge-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .cof-wedge {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            cursor: pointer;
+            pointer-events: auto;
+            
+            border-radius: 400px 0 0 0;
+            border: 0px solid transparent; 
+            border-top-width: 200px; 
+            border-left-width: 200px; 
+            border-top-color: var(--cof-wedge-bg);
+            
+            box-shadow: 0 0 0 1px var(--cof-border);
+            transition: all 0.15s ease-out;
+        }
+
+        .cof-wedge:hover {
+            opacity: 0.9;
+            filter: brightness(1.1);
+        }
+        
+        .cof-note-label {
+            position: absolute;
+            font-size: 1.4em; /* Increased size for visibility */
+            font-weight: 900;
+            color: var(--text-color);
+            text-shadow: 1px 1px 1px var(--panel-bg);
+            z-index: 10;
+            
+            /* Center the text within the wedge */
+            top: 25px; 
+            left: 25px;
+            transform: rotate(15deg) translate(140px, -10px); 
+            transform-origin: 0 0;
+            
+            /* Ensure the text itself doesn't block the click listener on the wedge */
+            pointer-events: none; 
+        }
+
+        .cof-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: var(--fretboard-bg);
+            border-radius: 50%;
+            z-index: 20; /* Ensure center is on top of all wedges */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+        
+        .cof-center-note {
+            font-size: 2em;
+            font-weight: 900;
+        }
+
+        /* Feedback Classes */
+        .cof-correct { border-top-color: var(--highlight-blue) !important; box-shadow: 0 0 5px 3px var(--highlight-blue); }
+        .cof-incorrect { border-top-color: var(--highlight-orange) !important; box-shadow: 0 0 5px 3px var(--highlight-orange); }
+        .cof-hint { border-top-color: #db2777 !important; box-shadow: 0 0 5px 3px #db2777; }
+    </style>
+</head>
+<body>
+
+    <header id="header">
+        <h1>Ultimate Fretboard Trainer</h1>
+        
+        <div class="controls-wrapper">
+
+            <div class="controls-group settings-tools">
+                <button id="theme-toggle" onclick="toggleTheme()">☀️ Theme</button>
+                <button id="theory-toggle" onclick="toggleTheory()">📖 Theory: OFF</button>
+                <button id="hint-mode-toggle" onclick="toggleHintMode()">💡 Hints: OFF</button>
+                
+                <div style="font-size: 1.2em; font-weight: bold;">
+                    Streak: <span id="streak-display" style="color:var(--highlight-blue)">0</span> 🔥
+                </div>
+            </div>
+
+            <div id="target-note-display">Select a Mode</div>
+            <p id="message-display" style="font-size: 1.3em; font-weight: bold; min-height: 1.5em; margin: 10px 0; color: #6b7280;">
+                Choose a quiz type or Free Play.
+            </p>
+
+            <div id="theory-panel">
+                <h3 id="theory-title">Theory Lesson</h3>
+                <p id="theory-content"></p>
+            </div>
+            
+            <div class="controls-group quiz-modes">
+                <button onclick="startQuiz('single')">Find Note</button>
+                <button onclick="startQuiz('all')">Find All</button>
+                <button onclick="startQuiz('chord')">Chords</button>
+                <button onclick="startQuiz('scale')">Scales</button>
+                <button id="cof-quiz-btn" onclick="startQuiz('cof')">⭕ Circle of Fifths</button>
+                <button id="free-play-btn" onclick="startQuiz('free')">🎸 Free Play</button>
+            </div>
+
+            <div class="controls-group quiz-utility">
+                <button id="next-question" onclick="nextQuestion()">Next Question ➜</button>
+                <button id="clear-board-btn" onclick="clearBoardMarkers()">🧹 Clear Board</button>
+            </div>
+
+
+            <div class="controls-group settings-filters">
+
+                <div class="setting-group">
+                    <label><strong>Chord Types:</strong></label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="chord_maj" value="Maj" checked><label for="chord_maj">Major</label>
+                        <input type="checkbox" id="chord_min" value="Min" checked><label for="chord_min">Minor</label>
+                        <input type="checkbox" id="chord_7" value="7" checked><label for="chord_7">Dom 7</label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label><strong>Scale Type:</strong></label>
+                    <div class="checkbox-group">
+                        <input type="radio" name="scale_type" id="scale_major" value="Major" checked><label for="scale_major">Major</label>
+                        <input type="radio" name="scale_type" id="scale_minor" value="Minor"><label for="scale_minor">Natural Minor</label>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label><strong>Tuning:</strong></label>
+                    <select id="tuning-select" onchange="changeTuning()">
+                        <option value="standard">Standard</option>
+                        <option value="drop_d">Drop D</option>
+                        <option value="dadgad">DADGAD</option>
+                        <option value="open_g">Open G</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label><strong>Frets:</strong></label>
+                    <select id="range-select" onchange="changeRange()">
+                        <option value="12">0 - 12</option>
+                        <option value="24" selected>0 - 24</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div id="fretboard-wrapper">
+        <div id="fretboard-container">
+            <div id="fretboard"></div>
+        </div>
+    </div>
+
+    <div id="cof-wrapper">
+        <div class="cof-ring">
+            <div id="cof-center-display" class="cof-center">
+                Root Note: <span class="cof-center-note" id="cof-root-note"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- AUDIO ENGINE (Subtractive Synthesis) --- */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const now = audioCtx.currentTime;
+            
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(2000, now); 
+            filter.frequency.exponentialRampToValueAtTime(300, now + 0.2); 
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.02); 
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5); 
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 1.5);
+        }
+
+        function calculateFrequency(stringIndex, fret) {
+            const openFreq = TUNINGS[currentTuningName][stringIndex];
+            return openFreq * Math.pow(2, fret / 12);
+        }
+
+        /* --- DATA & CONFIG --- */
+        const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        
+        const TUNING_INDICES = {
+            'standard': [4, 11, 7, 2, 9, 4],
+            'drop_d':   [4, 11, 7, 2, 9, 2],
+            'dadgad':   [2, 9, 7, 2, 9, 2],
+            'open_g':   [2, 11, 7, 2, 7, 2]
+        };
+
+        const TUNINGS = {
+            'standard': [329.63, 246.94, 196.00, 146.83, 110.00, 82.41],
+            'drop_d':   [329.63, 246.94, 196.00, 146.83, 110.00, 73.42], 
+            'dadgad':   [293.66, 220.00, 196.00, 146.83, 110.00, 73.42],
+            'open_g':   [293.66, 246.94, 196.00, 146.83,  98.00, 73.42]
+        };
+
+        const CHORD_INTERVALS = { 
+            'Maj': [0, 4, 7], 
+            'Min': [0, 3, 7], 
+            '7': [0, 4, 7, 10] 
+        };
+
+        const SCALE_INTERVALS = {
+            'Major': [0, 2, 4, 5, 7, 9, 11],
+            'Minor': [0, 2, 3, 5, 7, 8, 10]
+        };
+
+        const THEORY = {
+            'Maj': "Major Chord: Root + Major 3rd + Perfect 5th. Happy and stable sound.",
+            'Min': "Minor Chord: Root + Minor 3rd + Perfect 5th. Sad or serious sound.",
+            '7': "Dominant 7th: Major Chord + Minor 7th. Creates tension (bluesy).",
+            'MajorScale': "Major Scale: The fundamental 7-note pattern (Do-Re-Mi). Used to build Major keys.",
+            'MinorScale': "Natural Minor Scale: A scale with a flattened 3rd, 6th, and 7th compared to the Major scale. Used for Minor key solos and mood.",
+            'CoF': "Circle of Fifths: A crucial concept for understanding key signatures. The note a Perfect Fifth (7 semitones) above (clockwise) is the next key. It helps you quickly identify harmonically related keys for soloing.",
+            'Free': "Free Play Mode: Click anywhere to hear notes and explore the fretboard.",
+            'Single': "Single Note: Find specific notes to build muscle memory."
+        };
+        
+        // CoF Order: C -> G -> D -> A -> E -> B -> F# -> C# -> G# -> D# -> A# -> F
+        const COF_ORDER = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]; // Indices of NOTES
+
+        // Global State
+        let currentTuningName = 'standard';
+        let maxFrets = 24;
+        let currentMode = 'free';
+        let targetNoteIndex = -1; 
+        let targetNotes = []; 
+        let baseFret = -1;
+        let foundCoordinates = []; 
+        let currentSequenceIndex = 0;
+        let isQuizActive = false;
+        let hintMode = false; 
+        let theoryVisible = false;
+        let isDarkMode = false;
+        let streak = 0;
+        const FRET_SPAN = 4;
+
+        /* --- UI UTILITY FUNCTIONS --- */
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            document.getElementById('theme-toggle').textContent = isDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode";
+        }
+
+        function toggleTheory() {
+            theoryVisible = !theoryVisible;
+            document.getElementById('theory-panel').style.display = theoryVisible ? 'block' : 'none';
+            document.getElementById('theory-toggle').textContent = theoryVisible ? "📖 Theory: ON" : "📖 Theory: OFF";
+        }
+
+        function toggleHintMode() {
+            hintMode = !hintMode;
+            document.getElementById('hint-mode-toggle').classList.toggle('active');
+            document.getElementById('hint-mode-toggle').textContent = hintMode ? "💡 Hints: ON" : "💡 Hints: OFF";
+            if (currentMode === 'cof') {
+                updateCofHints();
+            } else {
+                updateHints();
+            }
+        }
+        
+        function clearBoardMarkers() {
+            const spots = document.querySelectorAll('.note-spot');
+            spots.forEach(s => {
+                s.classList.remove('correct', 'incorrect', 'revealed', 'sequence-correct', 'hint-mode-on', 'target-note');
+                if(s.getAttribute('data-f') !== '0') {
+                    s.textContent = '';
+                }
+                s.style.pointerEvents = 'auto';
+            });
+            // Clear CoF markers too, in case we switch modes
+            document.querySelectorAll('.cof-wedge').forEach(w => w.classList.remove('cof-correct', 'cof-incorrect', 'cof-hint'));
+            
+            document.getElementById('message-display').textContent = "Board Cleared.";
+            if (currentMode === 'free') {
+                document.getElementById('message-display').textContent = "Click any note to play.";
+            }
+        }
+
+        function getNote(stringIndex, fret) {
+            const openNoteIndex = TUNING_INDICES[currentTuningName][stringIndex];
+            return NOTES[(openNoteIndex + fret) % 12];
+        }
+
+        function changeTuning() {
+            currentTuningName = document.getElementById('tuning-select').value;
+            resetQuiz();
+            renderFretboard();
+        }
+
+        function changeRange() {
+            maxFrets = parseInt(document.getElementById('range-select').value);
+            resetQuiz();
+            renderFretboard();
+        }
+
+        function resetQuiz() {
+            isQuizActive = false;
+            currentMode = 'free';
+            targetNotes = [];
+            document.getElementById('target-note-display').textContent = "Select a Mode";
+            document.getElementById('message-display').textContent = "Choose a quiz type or Free Play.";
+            toggleVisualArea('fretboard'); 
+            clearBoardMarkers();
+        }
+
+        /* --- FRETBOARD RENDERER --- */
+        function renderFretboard() {
+            const board = document.getElementById('fretboard');
+            board.innerHTML = '';
+            board.style.gridTemplateColumns = `repeat(${maxFrets + 1}, auto)`;
+
+            for (let f = 0; f <= maxFrets; f++) {
+                const col = document.createElement('div');
+                col.className = f === 0 ? 'nut-column' : 'fret-column';
+                col.setAttribute('data-fret', f);
+
+                // Add Markers (Inlays)
+                if (f > 0) {
+                    if ([3, 5, 7, 9, 15, 17, 19, 21].includes(f)) {
+                        const m = document.createElement('div'); m.className = 'marker single-marker'; col.appendChild(m);
+                    } else if (f === 12 || f === 24) {
+                        const m1 = document.createElement('div'); m1.className = 'marker double-marker-top'; col.appendChild(m1);
+                        const m2 = document.createElement('div'); m2.className = 'marker double-marker-bottom'; col.appendChild(m2);
+                    }
+                }
+
+                // Add Strings
+                for (let s = 0; s < 6; s++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'string-cell';
+                    
+                    const line = document.createElement('div');
+                    line.className = `string-line string-${s}`;
+                    cell.appendChild(line);
+
+                    const spot = document.createElement('div');
+                    spot.className = 'note-spot';
+                    spot.setAttribute('data-s', s);
+                    spot.setAttribute('data-f', f);
+                    spot.setAttribute('data-note', getNote(s, f));
+                    
+                    if (f === 0) {
+                        spot.textContent = getNote(s, f);
+                    }
+
+                    spot.onclick = handleNoteClick;
+                    cell.appendChild(spot);
+                    col.appendChild(cell);
+                }
+                board.appendChild(col);
+            }
+            if(hintMode && currentMode !== 'cof') updateHints();
+        }
+
+        /* --- CIRCLE OF FIFTHS RENDERER --- */
+        function renderCofWheel(rootNote, direction) {
+            const ring = document.querySelector('#cof-wrapper .cof-ring');
+            ring.querySelectorAll('.cof-wedge-container').forEach(c => c.remove()); // Clear old wedges
+
+            const rootNoteIndex = NOTES.indexOf(rootNote);
+            const targetNoteIndex = (direction === 'Up') ? (rootNoteIndex + 7) % 12 : (rootNoteIndex - 7 + 12) % 12;
+            const targetNote = NOTES[targetNoteIndex];
+
+            document.getElementById('cof-root-note').textContent = rootNote;
+            
+            for (let i = 0; i < 12; i++) {
+                const noteIndex = COF_ORDER[i];
+                const note = NOTES[noteIndex];
+
+                const container = document.createElement('div');
+                container.className = 'cof-wedge-container';
+                
+                // Position the container
+                const rotation = i * 30;
+                container.style.transform = `rotate(${rotation}deg)`;
+                
+                const wedge = document.createElement('div');
+                wedge.className = 'cof-wedge';
+                wedge.setAttribute('data-note', note);
+                wedge.onclick = handleCofClick;
+
+                const label = document.createElement('div');
+                label.className = 'cof-note-label';
+                label.textContent = note;
+                
+                container.appendChild(wedge);
+                container.appendChild(label);
+                ring.appendChild(container);
+            }
+            
+            // Re-stack center display on top
+            ring.appendChild(document.getElementById('cof-center-display'));
+            
+            targetNotes = [targetNote];
+            
+            if (hintMode) updateCofHints();
+        }
+        
+        function updateCofHints() {
+            document.querySelectorAll('.cof-wedge').forEach(w => w.classList.remove('cof-hint'));
+            if (hintMode && targetNotes.length > 0) {
+                const targetNote = targetNotes[0];
+                const targetWedge = document.querySelector(`.cof-wedge[data-note="${targetNote}"]`);
+                if (targetWedge) {
+                    targetWedge.classList.add('cof-hint');
+                }
+            }
+        }
+
+        /* --- VISUAL AREA MANAGER --- */
+        function toggleVisualArea(activeArea) {
+            const fretboardWrapper = document.getElementById('fretboard-wrapper');
+            const cofWrapper = document.getElementById('cof-wrapper');
+
+            fretboardWrapper.style.display = (activeArea === 'fretboard') ? 'flex' : 'none';
+            cofWrapper.style.display = (activeArea === 'cof') ? 'flex' : 'none';
+            
+            clearBoardMarkers(); 
+        }
+
+        /* --- QUIZ LOGIC FUNCTIONS --- */
+        
+        function getAllValidCoordinates(notesToFind) {
+            const validCoords = [];
+            const startFret = (baseFret === -1) ? 0 : baseFret;
+            const endFret = (baseFret === -1) ? maxFrets : (baseFret + FRET_SPAN - 1);
+
+            for (let s = 0; s < 6; s++) {
+                let checkStart = (startFret === 0 || startFret === 1) ? 0 : startFret;
+                for (let f = checkStart; f <= endFret; f++) {
+                    if (f === 0 && startFret > 1) continue; 
+                    if (f > maxFrets) continue;
+                    if (notesToFind.includes(getNote(s, f))) {
+                        validCoords.push([s, f]);
+                    }
+                }
+            }
+            return validCoords;
+        }
+
+        function startQuiz(mode) {
+            // Clear and set state
+            clearBoardMarkers();
+            currentMode = mode;
+            foundCoordinates = [];
+            currentSequenceIndex = 0;
+            baseFret = -1;
+            
+            isQuizActive = (mode !== 'free');
+            targetNoteIndex = Math.floor(Math.random() * 12);
+            const rootNote = NOTES[targetNoteIndex];
+
+            // --- Free Play ---
+            if (mode === 'free') {
+                toggleVisualArea('fretboard');
+                document.getElementById('target-note-display').textContent = "Free Play";
+                document.getElementById('message-display').textContent = "Click any note to play.";
+                document.getElementById('theory-content').textContent = THEORY['Free'];
+                return;
+            }
+
+            // --- Circle of Fifths ---
+            if (mode === 'cof') {
+                toggleVisualArea('cof');
+                const direction = Math.random() < 0.5 ? 'Up' : 'Down';
+                
+                document.getElementById('target-note-display').textContent = `${rootNote} ⮕ 5th ${direction}?`;
+                document.getElementById('message-display').textContent = "Click the note on the wheel.";
+                document.getElementById('theory-content').textContent = THEORY['CoF'];
+
+                renderCofWheel(rootNote, direction); 
+                return;
+            }
+
+            // --- Fretboard Modes (Single, All, Chord, Scale) ---
+            toggleVisualArea('fretboard');
+
+            if (mode === 'single' || mode === 'all') {
+                targetNotes = [rootNote];
+                document.getElementById('target-note-display').textContent = rootNote;
+                document.getElementById('message-display').textContent = mode === 'single' ? "Find ONE." : "Find ALL.";
+                document.getElementById('theory-content').textContent = THEORY['Single'];
+            
+            } else if (mode === 'chord') {
+                const availableTypes = ['Maj', 'Min', '7'].filter(type => document.getElementById(`chord_${type}`).checked);
+                if (availableTypes.length === 0) {
+                    document.getElementById('message-display').textContent = "Select at least one Chord Type filter.";
+                    isQuizActive = false;
+                    return;
+                }
+                const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                targetNotes = CHORD_INTERVALS[type].map(i => NOTES[(targetNoteIndex + i) % 12]);
+                
+                const maxStart = maxFrets - FRET_SPAN;
+                baseFret = Math.floor(Math.random() * (maxStart + 1));
+                
+                document.getElementById('target-note-display').textContent = `${rootNote} ${type}`;
+                document.getElementById('message-display').textContent = `Frets ${baseFret} - ${baseFret + 3}`;
+                document.getElementById('theory-content').textContent = THEORY[type];
+
+            } else if (mode === 'scale') {
+                const scaleType = document.querySelector('input[name="scale_type"]:checked').value;
+                targetNotes = SCALE_INTERVALS[scaleType].map(i => NOTES[(targetNoteIndex + i) % 12]);
+                
+                const maxStart = maxFrets - FRET_SPAN;
+                baseFret = Math.floor(Math.random() * (maxStart + 1));
+
+                document.getElementById('target-note-display').textContent = `${rootNote} ${scaleType}`;
+                document.getElementById('message-display').textContent = `Play scale in order (Frets ${baseFret} - ${baseFret + 3})`;
+                document.getElementById('theory-content').textContent = THEORY[`${scaleType}Scale`];
+            }
+            updateHints();
+        }
+
+        function handleCofClick(e) {
+            if (!isQuizActive) return;
+
+            const selectedNote = e.currentTarget.getAttribute('data-note');
+            const isCorrect = targetNotes.includes(selectedNote);
+            
+            const allWedges = document.querySelectorAll('.cof-wedge');
+            allWedges.forEach(w => {
+                w.onclick = null; 
+                w.classList.remove('cof-hint'); 
+            });
+            
+            if (isCorrect) {
+                e.currentTarget.classList.add('cof-correct');
+                winRound();
+            } else {
+                e.currentTarget.classList.add('cof-incorrect');
+                loseRound();
+            }
+        }
+
+        function handleNoteClick(e) {
+            const spot = e.currentTarget;
+            const s = parseInt(spot.getAttribute('data-s'));
+            const f = parseInt(spot.getAttribute('data-f'));
+            const note = spot.getAttribute('data-note');
+
+            playTone(calculateFrequency(s, f));
+
+            if (currentMode === 'free') {
+                spot.textContent = note;
+                spot.classList.add('correct');
+                setTimeout(() => spot.classList.remove('correct'), 300);
+                return;
+            }
+
+            if (!isQuizActive) return;
+
+            let isCorrect = targetNotes.includes(note);
+            let isWindowValid = true;
+
+            if (baseFret !== -1) {
+                isWindowValid = (f >= baseFret && f < baseFret + FRET_SPAN) || (baseFret <= 1 && f === 0);
+            }
+            
+            if (currentMode === 'scale') {
+                const scaleLength = document.querySelector('input[name="scale_type"]:checked').value === 'Minor' ? 7 : 7;
+                const reqNote = targetNotes[currentSequenceIndex % scaleLength];
+                isCorrect = (note === reqNote && isWindowValid);
+            } else {
+                 isCorrect = (targetNotes.includes(note) && isWindowValid);
+            }
+
+            spot.textContent = note;
+
+            if (isCorrect) {
+                foundCoordinates.push(`${s},${f}`);
+                if (currentMode === 'scale') {
+                    spot.classList.add('sequence-correct');
+                    currentSequenceIndex++;
+                    const scaleLength = document.querySelector('input[name="scale_type"]:checked').value === 'Minor' ? 7 : 7;
+                    if (currentSequenceIndex >= scaleLength) winRound();
+                } else {
+                    spot.classList.add('correct');
+                    if (currentMode === 'single') winRound();
+                    else if (currentMode === 'all') {
+                        const needed = getAllValidCoordinates(targetNotes);
+                        if (foundCoordinates.length >= needed.length) winRound();
+                    }
+                }
+            } else {
+                spot.classList.add('incorrect');
+                loseRound();
+            }
+            
+            if (currentMode === 'single') spot.style.pointerEvents = 'none';
+        }
+
+        function winRound() {
+            isQuizActive = false;
+            streak++;
+            document.getElementById('streak-display').textContent = streak;
+            document.getElementById('message-display').textContent = "Success! Click Next.";
+            document.getElementById('message-display').style.color = "var(--highlight-blue)";
+            
+            if (currentMode === 'cof') {
+                const targetNote = targetNotes[0];
+                const targetWedge = document.querySelector(`.cof-wedge[data-note="${targetNote}"]`);
+                if (targetWedge) {
+                    targetWedge.classList.add('cof-correct');
+                }
+            } else {
+                document.querySelectorAll('.note-spot').forEach(s => s.style.pointerEvents = 'none');
+            }
+        }
+
+        function loseRound() {
+            isQuizActive = false;
+            streak = 0;
+            document.getElementById('streak-display').textContent = streak;
+            document.getElementById('message-display').textContent = "Incorrect. Solution revealed.";
+            document.getElementById('message-display').style.color = "var(--highlight-orange)";
+
+            if (currentMode === 'cof') {
+                const targetNote = targetNotes[0];
+                const targetWedge = document.querySelector(`.cof-wedge[data-note="${targetNote}"]`);
+                if (targetWedge) {
+                    targetWedge.classList.add('cof-correct');
+                }
+            } else {
+                revealAnswers();
+            }
+        }
+
+        function revealAnswers() {
+            const needed = getAllValidCoordinates(targetNotes);
+            const spots = document.querySelectorAll('.note-spot');
+            spots.forEach(sp => {
+                const s = parseInt(sp.getAttribute('data-s'));
+                const f = parseInt(sp.getAttribute('data-f'));
+                const isTarget = needed.some(c => c[0] === s && c[1] === f);
+                
+                if (isTarget && !sp.classList.contains('correct') && !sp.classList.contains('sequence-correct') && !sp.classList.contains('incorrect')) {
+                    sp.classList.add('revealed');
+                    sp.textContent = sp.getAttribute('data-note');
+                }
+                sp.style.pointerEvents = 'none';
+            });
+        }
+
+        function updateHints() {
+            const spots = document.querySelectorAll('.note-spot');
+            const needed = (isQuizActive && currentMode !== 'free') ? getAllValidCoordinates(targetNotes) : [];
+
+            spots.forEach(sp => {
+                if(sp.classList.contains('correct') || sp.classList.contains('incorrect') || sp.classList.contains('revealed') || sp.getAttribute('data-f') === '0') return;
+                
+                const s = parseInt(sp.getAttribute('data-s'));
+                const f = parseInt(sp.getAttribute('data-f'));
+
+                if (hintMode) {
+                    sp.classList.add('hint-mode-on');
+                    sp.textContent = sp.getAttribute('data-note');
+                    const isTarget = needed.some(c => c[0] === s && c[1] === f);
+                    if(isTarget) sp.classList.add('target-note');
+                    else sp.classList.remove('target-note');
+                } else {
+                    sp.classList.remove('hint-mode-on', 'target-note');
+                    if (f !== 0) sp.textContent = '';
+                }
+            });
+        }
+
+        function nextQuestion() {
+            startQuiz(currentMode === 'free' ? 'single' : currentMode);
+        }
+
+        // Init: Set up dark mode based on system preference and render
+        window.onload = () => {
+            // Check for user's preferred color scheme and default to dark mode if preferred
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                isDarkMode = true;
+                document.body.classList.add('dark-mode');
+                document.getElementById('theme-toggle').textContent = "☀️ Light Mode";
+            } else {
+                document.getElementById('theme-toggle').textContent = "🌙 Dark Mode";
+            }
+
+            renderFretboard();
+            renderCofWheel('C', 'Up'); 
+            toggleVisualArea('fretboard'); 
+        };
+
+    </script>
+</body>
+</html>
