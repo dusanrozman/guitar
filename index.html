@@ -25,6 +25,7 @@
             --cof-ring-color: #e0e0e0;
             --cof-wedge-bg: #f7f7f7;
             --cof-border: #4a4a4a;
+            --timer-color: #dc2626;
         }
 
         body.dark-mode {
@@ -44,6 +45,7 @@
             --cof-ring-color: #374151;
             --cof-wedge-bg: #2d3748;
             --cof-border: #9ca3af;
+            --timer-color: #ef4444;
         }
 
         /* --- CORE LAYOUT --- */
@@ -93,9 +95,12 @@
             border-radius: 8px;
             background-color: var(--bg-color);
             color: var(--text-color);
+            flex-grow: 1; /* Allows groups to fill space */
+            min-width: 150px;
         }
+        .setting-group.full-width { min-width: 100%; }
 
-        .checkbox-group { display: flex; gap: 10px; margin-top: 5px; }
+        .checkbox-group, .radio-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
         
         select {
             padding: 10px; font-size: 1.1em; border-radius: 8px;
@@ -154,12 +159,19 @@
         .hud-item {
             font-size: 1.5em;
             font-weight: 900;
-            margin-right: 15px;
             color: var(--text-color);
             background: var(--bg-color);
             padding: 10px 20px;
             border-radius: 8px;
             border: 1px solid var(--fretboard-border);
+        }
+        
+        #timer-display {
+            color: var(--timer-color);
+            font-size: 2em;
+            font-weight: 900;
+            min-width: 60px;
+            text-align: center;
         }
 
         /* --- MULTIPLE CHOICE PANEL --- */
@@ -263,7 +275,7 @@
             </div>
 
             <div class="controls-group settings-filters">
-                <div class="setting-group">
+                <div class="setting-group filter-group" id="chord-filters">
                     <label><strong>Chord Types:</strong></label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="chord_maj" value="Maj" checked><label for="chord_maj">Major</label>
@@ -272,17 +284,39 @@
                     </div>
                 </div>
 
-                <div class="setting-group">
+                <div class="setting-group filter-group" id="scale-filters">
                     <label><strong>Scale Type:</strong></label>
-                    <div class="checkbox-group">
+                    <div class="radio-group">
                         <input type="radio" name="scale_type" id="scale_major" value="Major" checked><label for="scale_major">Major</label>
                         <input type="radio" name="scale_type" id="scale_minor" value="Minor"><label for="scale_minor">Natural Minor</label>
                     </div>
                 </div>
-                
+
+                <div class="setting-group filter-group full-width" id="name-note-string-filters" style="display:none;">
+                    <label><strong>Name Note Strings (EADGBE):</strong></label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="string_5" data-s="5" checked><label for="string_5">E</label>
+                        <input type="checkbox" id="string_4" data-s="4" checked><label for="string_4">A</label>
+                        <input type="checkbox" id="string_3" data-s="3" checked><label for="string_3">D</label>
+                        <input type="checkbox" id="string_2" data-s="2" checked><label for="string_2">G</label>
+                        <input type="checkbox" id="string_1" data-s="1" checked><label for="string_1">B</label>
+                        <input type="checkbox" id="string_0" data-s="0" checked><label for="string_0">e</label>
+                    </div>
+                </div>
+
+                <div class="setting-group filter-group" id="name-note-type-filters" style="display:none;">
+                    <label><strong>Name Note Types:</strong></label>
+                    <div class="radio-group">
+                        <input type="radio" name="note_type_filter" id="note_all" value="all" checked><label for="note_all">All Notes</label>
+                        <input type="radio" name="note_type_filter" id="note_naturals" value="naturals"><label for="note_naturals">Naturals (C D E F G A B)</label>
+                        <input type="radio" name="note_type_filter" id="note_accidentals" value="accidentals"><label for="note_accidentals">Sharps/Flats</label>
+                        <input type="radio" name="note_type_filter" id="note_anchors" value="anchors"><label for="note_anchors">Anchor Frets (3, 5, 7, 9, 12, etc.)</label>
+                    </div>
+                </div>
+
                 <div class="setting-group">
                     <label><strong>Tuning:</strong></label>
-                    <select id="tuning-select" onchange="changeTuning()">
+                    <select id="tuning-select" onchange="changeSetting()">
                         <option value="standard">Standard</option>
                         <option value="drop_d">Drop D</option>
                         <option value="dadgad">DADGAD</option>
@@ -292,9 +326,19 @@
 
                 <div class="setting-group">
                     <label><strong>Frets:</strong></label>
-                    <select id="range-select" onchange="changeRange()">
-                        <option value="12">0 - 12</option>
-                        <option value="24" selected>0 - 24</option>
+                    <select id="range-select" onchange="changeSetting()">
+                        <option value="12" selected>0 - 12</option>
+                        <option value="24">0 - 24</option>
+                    </select>
+                </div>
+
+                <div class="setting-group filter-group" id="timer-setting">
+                    <label><strong>Quiz Timer (Seconds):</strong></label>
+                    <select id="timer-select" onchange="resetTimer()">
+                        <option value="0">Off</option>
+                        <option value="5">5s</option>
+                        <option value="10">10s</option>
+                        <option value="15">15s</option>
                     </select>
                 </div>
             </div>
@@ -310,7 +354,8 @@
         </div>
         <button id="replay-btn" style="display:none" onclick="replayTargetTone()">🔊 Hear Note</button>
         <button id="next-question" onclick="nextQuestion()">Next Question ➜</button>
-        <button id="clear-board-btn" onclick="clearBoardMarkers()">🧹 Clear</button>
+        <div id="timer-display" style="display:none;"></div>
+        <button id="clear-board-btn" style="display:none" onclick="clearBoardMarkers()">🧹 Clear</button>
     </div>
 
     <div id="mc-options">
@@ -355,6 +400,22 @@
             osc.stop(now + 1.5);
         }
 
+        function playBuzzer() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.linearRampToValueAtTime(50, now + 0.5);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 1);
+        }
+
         function calculateFrequency(stringIndex, fret) {
             const openFreq = TUNINGS[currentTuningName][stringIndex];
             return openFreq * Math.pow(2, fret / 12);
@@ -388,6 +449,9 @@
 
         /* --- DATA --- */
         const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const NATURAL_NOTES = ["C", "D", "E", "F", "G", "A", "B"];
+        const ACCIDENTAL_NOTES = ["C#", "D#", "F#", "G#", "A#"];
+        const ANCHOR_FRETS = [0, 3, 5, 7, 9, 12, 15, 17, 19, 21, 24]; // Frets with markers/nut
         const TUNING_INDICES = { 'standard': [4, 11, 7, 2, 9, 4], 'drop_d': [4, 11, 7, 2, 9, 2], 'dadgad': [2, 9, 7, 2, 9, 2], 'open_g': [2, 11, 7, 2, 7, 2] };
         const TUNINGS = { 'standard': [329.63, 246.94, 196.00, 146.83, 110.00, 82.41], 'drop_d': [329.63, 246.94, 196.00, 146.83, 110.00, 73.42], 'dadgad': [293.66, 220.00, 196.00, 146.83, 110.00, 73.42], 'open_g': [293.66, 246.94, 196.00, 146.83, 98.00, 73.42] };
         const CHORD_INTERVALS = { 'Maj': [0, 4, 7], 'Min': [0, 3, 7], '7': [0, 4, 7, 10] };
@@ -407,7 +471,7 @@
 
         /* --- STATE --- */
         let currentTuningName = 'standard';
-        let maxFrets = 24;
+        let maxFrets = 12; // Default changed to 12
         let currentMode = 'free';
         let targetNoteIndex = -1; 
         let targetNotes = []; 
@@ -422,8 +486,11 @@
         const FRET_SPAN = 4;
         
         let currentReplayFreq = 0;
+        let timerInterval;
+        let timerDuration = 0;
 
         /* --- LOGIC --- */
+        
         function getNote(stringIndex, fret) {
             const openNoteIndex = TUNING_INDICES[currentTuningName][stringIndex];
             return NOTES[(openNoteIndex + fret) % 12];
@@ -448,25 +515,74 @@
             (currentMode === 'cof') ? updateCofHints() : updateHints();
         }
         
-        function changeTuning() {
+        function changeSetting() {
             currentTuningName = document.getElementById('tuning-select').value;
-            // Persist mode on change
-            renderFretboard();
-            startQuiz(currentMode); 
-        }
-
-        function changeRange() {
             maxFrets = parseInt(document.getElementById('range-select').value);
-            // Persist mode on change
+            timerDuration = parseInt(document.getElementById('timer-select').value);
+            stopTimer(); // Stop timer if it was running
             renderFretboard();
-            startQuiz(currentMode);
+            
+            // Persist mode on setting change, or default to single if not in a quiz
+            const modeToStart = (currentMode === 'free' || currentMode === 'cof') ? 'single' : currentMode;
+            if(currentMode !== 'cof') startQuiz(modeToStart); 
+        }
+        
+        function resetTimer() {
+            timerDuration = parseInt(document.getElementById('timer-select').value);
+            if(isQuizActive) startTimer();
         }
 
-        function resetQuiz() {
-            isQuizActive = false; currentMode = 'free'; targetNotes = [];
-            document.getElementById('target-note-display').textContent = "Select a Mode";
-            document.getElementById('message-display').textContent = "Choose a quiz type or Free Play.";
-            toggleVisualArea('fretboard'); clearBoardMarkers();
+        function startTimer() {
+            stopTimer();
+            if (timerDuration > 0) {
+                let timeLeft = timerDuration;
+                const timerDisplay = document.getElementById('timer-display');
+                timerDisplay.style.display = 'block';
+                timerDisplay.textContent = timeLeft;
+                
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        stopTimer();
+                        if (isQuizActive) {
+                            playBuzzer();
+                            document.getElementById('message-display').textContent = "Time Up! Round Lost.";
+                            loseRound();
+                        }
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('timer-display').style.display = 'none';
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timer-display').style.display = 'none';
+        }
+
+        function updateFilterVisibility(mode) {
+            const isNameNote = mode === 'name';
+            const isFretboardQuiz = ['single', 'all', 'chord', 'scale'].includes(mode);
+            
+            // Hide all specialized filters first
+            document.getElementById('chord-filters').style.display = 'none';
+            document.getElementById('scale-filters').style.display = 'none';
+            document.getElementById('name-note-string-filters').style.display = 'none';
+            document.getElementById('name-note-type-filters').style.display = 'none';
+            document.getElementById('timer-setting').style.display = isNameNote ? 'flex' : 'none';
+            document.getElementById('clear-board-btn').style.display = (isFretboardQuiz || mode === 'free') ? 'block' : 'none';
+
+            // Show relevant filters
+            if (isNameNote) {
+                document.getElementById('name-note-string-filters').style.display = 'flex';
+                document.getElementById('name-note-type-filters').style.display = 'flex';
+            } else if (mode === 'chord') {
+                document.getElementById('chord-filters').style.display = 'flex';
+            } else if (mode === 'scale') {
+                document.getElementById('scale-filters').style.display = 'flex';
+            }
         }
 
         function renderFretboard() {
@@ -555,6 +671,30 @@
             }
             return validCoords;
         }
+        
+        function getValidNameNoteCoordinates() {
+            const selectedStrings = Array.from(document.querySelectorAll('#name-note-string-filters input:checked')).map(cb => parseInt(cb.getAttribute('data-s')));
+            const noteTypeFilter = document.querySelector('input[name="note_type_filter"]:checked').value;
+            const validCoords = [];
+            
+            for (let s of selectedStrings) {
+                for (let f = 0; f <= maxFrets; f++) {
+                    const note = getNote(s, f);
+                    let isNoteTypeValid = false;
+                    
+                    if (noteTypeFilter === 'all') isNoteTypeValid = true;
+                    else if (noteTypeFilter === 'naturals') isNoteTypeValid = NATURAL_NOTES.includes(note);
+                    else if (noteTypeFilter === 'accidentals') isNoteTypeValid = ACCIDENTAL_NOTES.includes(note);
+                    else if (noteTypeFilter === 'anchors') isNoteTypeValid = ANCHOR_FRETS.includes(f);
+
+                    if (isNoteTypeValid) {
+                        validCoords.push([s, f]);
+                    }
+                }
+            }
+            return validCoords;
+        }
+
 
         function generateDistractors(correctNoteIndex) {
             const wrongIndices = NOTES.map((_, i) => i).filter(i => i !== correctNoteIndex);
@@ -598,6 +738,7 @@
         }
 
         function handleMcAnswer(e) {
+            stopTimer(); // Stop timer immediately on answer
             if (!isQuizActive) return;
             const selectedNote = e.currentTarget.getAttribute('data-answer');
             const correctNote = targetNotes[0];
@@ -621,8 +762,11 @@
         }
 
         function startQuiz(mode) {
+            stopTimer();
             clearBoardMarkers();
             currentMode = mode;
+            updateFilterVisibility(mode); // Show/hide relevant settings
+
             foundCoordinates = [];
             currentSequenceIndex = 0;
             baseFret = -1;
@@ -633,7 +777,7 @@
             // Setup UI Visibility
             document.getElementById('mc-options').style.display = 'none';
             document.getElementById('replay-btn').style.display = 'none';
-
+            
             if (mode === 'free') {
                 toggleVisualArea('fretboard');
                 document.getElementById('target-note-display').textContent = "Free Play";
@@ -644,8 +788,16 @@
 
             if (mode === 'name') {
                 toggleVisualArea('fretboard');
-                const stringIndex = Math.floor(Math.random() * 6);
-                const fret = Math.floor(Math.random() * (maxFrets + 1));
+                const validCoords = getValidNameNoteCoordinates();
+                
+                if(validCoords.length === 0) {
+                    document.getElementById('target-note-display').textContent = "NO NOTES SELECTED";
+                    document.getElementById('message-display').textContent = "Adjust string or note type filters.";
+                    isQuizActive = false;
+                    return;
+                }
+                
+                const [stringIndex, fret] = validCoords[Math.floor(Math.random() * validCoords.length)];
                 const note = getNote(stringIndex, fret);
                 
                 currentReplayFreq = calculateFrequency(stringIndex, fret);
@@ -664,6 +816,7 @@
                 
                 playTone(currentReplayFreq);
                 setupMultipleChoice(note);
+                startTimer(); // Start timer for Name Note mode
                 return;
             }
 
@@ -677,6 +830,7 @@
                 return;
             }
 
+            // --- FRETBOARD QUIZ MODES (Single, All, Chord, Scale) ---
             toggleVisualArea('fretboard');
             if (mode === 'single' || mode === 'all') {
                 targetNotes = [rootNote];
@@ -757,6 +911,7 @@
         }
 
         function winRound() {
+            stopTimer(); // Ensure timer stops on win
             isQuizActive = false; streak++;
             document.getElementById('streak-display').textContent = streak;
             document.getElementById('message-display').textContent = "Success! Click Next.";
@@ -777,6 +932,7 @@
         }
 
         function loseRound() {
+            stopTimer(); // Ensure timer stops on loss
             isQuizActive = false; streak = 0;
             document.getElementById('streak-display').textContent = streak;
             document.getElementById('message-display').textContent = "Incorrect. Solution revealed.";
@@ -828,11 +984,29 @@
         }
 
         window.onload = () => {
+            document.getElementById('range-select').value = '12'; // Set default to 0-12
+            maxFrets = 12; // Update state
+
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 isDarkMode = true; document.body.classList.add('dark-mode');
                 document.getElementById('theme-toggle').textContent = "☀️ Light Mode";
             } else { document.getElementById('theme-toggle').textContent = "🌙 Dark Mode"; }
-            renderFretboard(); renderCofWheel('C', 'Up'); toggleVisualArea('fretboard'); 
+            
+            // Add listeners to Name Note filters to refresh the quiz if active
+            const nameNoteFilters = document.querySelectorAll('#name-note-string-filters input, #name-note-type-filters input');
+            nameNoteFilters.forEach(el => {
+                el.addEventListener('change', () => {
+                    if (currentMode === 'name') {
+                        startQuiz('name');
+                    }
+                });
+            });
+            
+            renderFretboard(); 
+            renderCofWheel('C', 'Up'); 
+            toggleVisualArea('fretboard'); 
+            // Initial call to hide clear button
+            updateFilterVisibility('free');
         };
     </script>
 </body>
