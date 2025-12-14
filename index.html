@@ -26,6 +26,8 @@
             --cof-wedge-bg: #f7f7f7;
             --cof-border: #4a4a4a;
             --timer-color: #dc2626;
+            --stats-bg: #ccfbf1; /* Very Light Teal for HUD item background */
+            --stats-border: #06b6d4;
         }
 
         body.dark-mode {
@@ -46,6 +48,8 @@
             --cof-wedge-bg: #2d3748;
             --cof-border: #9ca3af;
             --timer-color: #ef4444;
+            --stats-bg: #0f172a; 
+            --stats-border: #06b6d4;
         }
 
         /* --- CORE LAYOUT --- */
@@ -95,7 +99,7 @@
             border-radius: 8px;
             background-color: var(--bg-color);
             color: var(--text-color);
-            flex-grow: 1; /* Allows groups to fill space */
+            flex-grow: 1; 
             min-width: 150px;
         }
         .setting-group.full-width { min-width: 100%; }
@@ -107,7 +111,7 @@
             border: 2px solid #3b82f6; background-color: var(--panel-bg);
             color: var(--text-color); font-weight: bold; cursor: pointer;
         }
-
+        
         /* --- BUTTONS --- */
         button {
             padding: 15px 25px; font-size: 1.1em; font-weight: 800; cursor: pointer;
@@ -127,6 +131,7 @@
         #hint-mode-toggle { background-color: #64748b; box-shadow: 0 4px 0 #334155; }
         #hint-mode-toggle.active { background-color: #9333ea; box-shadow: 0 4px 0 #6b21a8; }
         #next-question { background-color: #0f172a; box-shadow: 0 4px 0 #000; min-width: 200px; font-size: 1.3em;}
+        #reset-stats-btn { background-color: #f97316; box-shadow: 0 4px 0 #c2410c; padding: 10px 15px; font-size: 1em; margin-top: 10px;}
 
         /* --- QUESTION AREA --- */
         #target-note-display {
@@ -153,7 +158,7 @@
             background-color: var(--panel-bg);
             border-radius: 12px;
             box-shadow: 0 2px 4px var(--panel-shadow);
-            max-width: 800px;
+            max-width: 1100px; /* Wider to accommodate stats */
         }
 
         .hud-item {
@@ -164,8 +169,27 @@
             padding: 10px 20px;
             border-radius: 8px;
             border: 1px solid var(--fretboard-border);
+            white-space: nowrap;
         }
         
+        .stat-hud-item {
+            font-size: 1.1em; /* Smaller font for stats to fit multiple */
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 15px;
+            background: var(--stats-bg); /* Highlight stats background */
+            border: 2px solid var(--stats-border);
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--highlight-blue);
+        }
+
         #timer-display {
             color: var(--timer-color);
             font-size: 2em;
@@ -235,15 +259,15 @@
         /* --- COF --- */
         #cof-wrapper { display: none; justify-content: center; margin: 40px auto; max-width: 600px; }
         .cof-ring { position: relative; width: 400px; height: 400px; border-radius: 50%; background: var(--cof-ring-color); box-shadow: 0 4px 15px var(--panel-shadow); }
-        .cof-wedge-container { position: absolute; top: 0; left: 0; width: 50%; height: 50%; transform-origin: 100% 100%; overflow: hidden; pointer-events: none; }
-        .cof-wedge { position: absolute; width: 100%; height: 100%; top: 0; left: 0; transform-origin: 0 0; cursor: pointer; pointer-events: auto; border-radius: 400px 0 0 0; border: 0px solid transparent; border-top-width: 200px; border-left-width: 200px; border-top-color: var(--cof-wedge-bg); box-shadow: 0 0 0 1px var(--cof-border); transition: all 0.15s ease-out; }
+        .cof-wedge-container { position: absolute; top: 50%; left: 50%; width: 50%; height: 50%; transform-origin: 0% 0%; overflow: hidden; pointer-events: none; }
+        .cof-wedge { position: absolute; width: 200%; height: 200%; top: -100%; left: -100%; transform-origin: 100% 100%; cursor: pointer; pointer-events: auto; background-color: var(--cof-wedge-bg); border-radius: 400px; border: 1px solid var(--cof-border); transition: all 0.15s ease-out; clip-path: polygon(100% 100%, 0% 100%, 100% 0%); }
         .cof-wedge:hover { opacity: 0.9; filter: brightness(1.1); }
         .cof-note-label { position: absolute; font-size: 1.4em; font-weight: 900; color: var(--text-color); top: 25px; left: 25px; transform: rotate(15deg) translate(140px, -10px); transform-origin: 0 0; pointer-events: none; }
         .cof-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 150px; height: 150px; background: var(--fretboard-bg); border-radius: 50%; z-index: 20; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); font-size: 1.1em; font-weight: bold; color: white; text-align: center; }
         .cof-center-note { font-size: 2em; font-weight: 900; }
-        .cof-correct { border-top-color: var(--highlight-blue) !important; box-shadow: 0 0 5px 3px var(--highlight-blue); }
-        .cof-incorrect { border-top-color: var(--highlight-orange) !important; box-shadow: 0 0 5px 3px var(--highlight-orange); }
-        .cof-hint { border-top-color: #db2777 !important; box-shadow: 0 0 5px 3px #db2777; }
+        .cof-correct { background-color: var(--highlight-blue) !important; box-shadow: 0 0 5px 3px var(--highlight-blue); }
+        .cof-incorrect { background-color: var(--highlight-orange) !important; box-shadow: 0 0 5px 3px var(--highlight-orange); }
+        .cof-hint { background-color: #db2777 !important; box-shadow: 0 0 5px 3px #db2777; }
     </style>
 </head>
 <body>
@@ -275,7 +299,7 @@
             </div>
 
             <div class="controls-group settings-filters">
-                <div class="setting-group filter-group" id="chord-filters">
+                <div class="setting-group filter-group" id="chord-filters" style="display:none;">
                     <label><strong>Chord Types:</strong></label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="chord_maj" value="Maj" checked><label for="chord_maj">Major</label>
@@ -284,7 +308,7 @@
                     </div>
                 </div>
 
-                <div class="setting-group filter-group" id="scale-filters">
+                <div class="setting-group filter-group" id="scale-filters" style="display:none;">
                     <label><strong>Scale Type:</strong></label>
                     <div class="radio-group">
                         <input type="radio" name="scale_type" id="scale_major" value="Major" checked><label for="scale_major">Major</label>
@@ -332,7 +356,7 @@
                     </select>
                 </div>
 
-                <div class="setting-group filter-group" id="timer-setting">
+                <div class="setting-group filter-group" id="timer-setting" style="display:none;">
                     <label><strong>Quiz Timer (Seconds):</strong></label>
                     <select id="timer-select" onchange="resetTimer()">
                         <option value="0">Off</option>
@@ -341,6 +365,10 @@
                         <option value="15">15s</option>
                     </select>
                 </div>
+            </div>
+            
+             <div style="text-align: center; margin-top: -10px;">
+                <button id="reset-stats-btn" onclick="resetStats()">Reset Stats</button>
             </div>
         </div>
     </header>
@@ -351,6 +379,13 @@
     <div id="action-bar">
         <div class="hud-item">
             Streak: <span id="streak-display" style="color:var(--highlight-blue)">0</span> 🔥
+        </div>
+        
+        <div class="stat-hud-item">
+            Accuracy: <span id="stat-accuracy" class="stat-value">--%</span>
+        </div>
+        <div class="stat-hud-item">
+            Avg Speed: <span id="stat-speed" class="stat-value">--s</span>
         </div>
         <button id="replay-btn" style="display:none" onclick="replayTargetTone()">🔊 Hear Note</button>
         <button id="next-question" onclick="nextQuestion()">Next Question ➜</button>
@@ -471,7 +506,7 @@
 
         /* --- STATE --- */
         let currentTuningName = 'standard';
-        let maxFrets = 12; // Default changed to 12
+        let maxFrets = 12; 
         let currentMode = 'free';
         let targetNoteIndex = -1; 
         let targetNotes = []; 
@@ -488,6 +523,43 @@
         let currentReplayFreq = 0;
         let timerInterval;
         let timerDuration = 0;
+        let startTime; 
+
+        // --- STATS STATE ---
+        let totalQuestions = 0;
+        let correctAnswers = 0;
+        let totalTimeSpent = 0; // in seconds
+        
+        /* --- STATS FUNCTIONS --- */
+        function updateStatsDisplay() {
+            const accuracy = totalQuestions > 0 ? ((correctAnswers / totalQuestions) * 100).toFixed(1) : '--';
+            const avgSpeed = correctAnswers > 0 ? (totalTimeSpent / correctAnswers).toFixed(1) : '--';
+            
+            document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
+            document.getElementById('stat-speed').textContent = `${avgSpeed}s`;
+        }
+        
+        function resetStats() {
+            totalQuestions = 0;
+            correctAnswers = 0;
+            totalTimeSpent = 0;
+            streak = 0;
+            document.getElementById('streak-display').textContent = '0';
+            updateStatsDisplay();
+            document.getElementById('message-display').textContent = "Statistics reset to zero.";
+        }
+        
+        function recordAnswer(isCorrect, timeTaken = 0) {
+            // Only record stats for Fretboard Quizzes and Name Note
+            if (['single', 'all', 'chord', 'scale', 'name'].includes(currentMode)) {
+                totalQuestions++;
+                if (isCorrect) {
+                    correctAnswers++;
+                    totalTimeSpent += timeTaken;
+                }
+                updateStatsDisplay();
+            }
+        }
 
         /* --- LOGIC --- */
         
@@ -519,12 +591,11 @@
             currentTuningName = document.getElementById('tuning-select').value;
             maxFrets = parseInt(document.getElementById('range-select').value);
             timerDuration = parseInt(document.getElementById('timer-select').value);
-            stopTimer(); // Stop timer if it was running
+            stopTimer(); 
             renderFretboard();
             
-            // Persist mode on setting change, or default to single if not in a quiz
             const modeToStart = (currentMode === 'free' || currentMode === 'cof') ? 'single' : currentMode;
-            if(currentMode !== 'cof') startQuiz(modeToStart); 
+            if(currentMode !== 'cof' && currentMode !== 'free') startQuiz(modeToStart); 
         }
         
         function resetTimer() {
@@ -571,6 +642,8 @@
             document.getElementById('scale-filters').style.display = 'none';
             document.getElementById('name-note-string-filters').style.display = 'none';
             document.getElementById('name-note-type-filters').style.display = 'none';
+            
+            // Set Timer/Clear button visibility based on mode
             document.getElementById('timer-setting').style.display = isNameNote ? 'flex' : 'none';
             document.getElementById('clear-board-btn').style.display = (isFretboardQuiz || mode === 'free') ? 'block' : 'none';
 
@@ -596,9 +669,10 @@
                 col.setAttribute('data-fret', f);
 
                 if (f > 0) {
-                    if ([3, 5, 7, 9, 15, 17, 19, 21].includes(f)) {
+                    // Anchor Frets logic
+                    if ([3, 5, 7, 9, 15, 17, 19, 21].includes(f) && f <= maxFrets) {
                         const m = document.createElement('div'); m.className = 'marker single-marker'; col.appendChild(m);
-                    } else if (f === 12 || f === 24) {
+                    } else if ((f === 12 || f === 24) && f <= maxFrets) {
                         const m1 = document.createElement('div'); m1.className = 'marker double-marker-top'; col.appendChild(m1);
                         const m2 = document.createElement('div'); m2.className = 'marker double-marker-bottom'; col.appendChild(m2);
                     }
@@ -620,6 +694,7 @@
 
         function renderCofWheel(rootNote, direction) {
             const ring = document.querySelector('#cof-wrapper .cof-ring');
+            // Remove previous wedges
             ring.querySelectorAll('.cof-wedge-container').forEach(c => c.remove()); 
 
             const rootNoteIndex = NOTES.indexOf(rootNote);
@@ -632,12 +707,23 @@
                 const noteIndex = COF_ORDER[i];
                 const note = NOTES[noteIndex];
                 const container = document.createElement('div'); container.className = 'cof-wedge-container';
+                // Rotate container to position the wedge
                 container.style.transform = `rotate(${i * 30}deg)`;
+                
                 const wedge = document.createElement('div'); wedge.className = 'cof-wedge';
                 wedge.setAttribute('data-note', note); wedge.onclick = handleCofClick;
+                
                 const label = document.createElement('div'); label.className = 'cof-note-label'; label.textContent = note;
-                container.appendChild(wedge); container.appendChild(label); ring.appendChild(container);
+                
+                // Rotation for label placement
+                const labelRotation = 30 * i + 15; 
+                label.style.transform = `rotate(${labelRotation}deg) translate(140px, -10px)`;
+                
+                container.appendChild(wedge); 
+                container.appendChild(label); 
+                ring.appendChild(container);
             }
+            // Ensure center is on top
             ring.appendChild(document.getElementById('cof-center-display'));
             targetNotes = [targetNote];
             if (hintMode) updateCofHints();
@@ -738,22 +824,27 @@
         }
 
         function handleMcAnswer(e) {
+            const endTime = Date.now();
+            const timeTaken = (endTime - startTime) / 1000; // time in seconds
+            
             stopTimer(); // Stop timer immediately on answer
             if (!isQuizActive) return;
             const selectedNote = e.currentTarget.getAttribute('data-answer');
             const correctNote = targetNotes[0];
+            const isCorrect = selectedNote === correctNote;
 
             document.querySelectorAll('.mc-button').forEach(btn => {
                 btn.onclick = null; // Disable clicks individually
                 if (btn.getAttribute('data-answer') === correctNote) btn.classList.add('revealed-answer');
             });
 
-            if (selectedNote === correctNote) {
+            if (isCorrect) {
                 e.currentTarget.classList.add('correct-answer');
-                winRound();
+                winRound(timeTaken);
             } else {
                 e.currentTarget.classList.add('wrong-answer');
                 loseRound();
+                recordAnswer(false, 0); // Record loss (time not counted)
             }
         }
         
@@ -770,7 +861,7 @@
             foundCoordinates = [];
             currentSequenceIndex = 0;
             baseFret = -1;
-            isQuizActive = (mode !== 'free');
+            isQuizActive = (mode !== 'free' && mode !== 'cof');
             targetNoteIndex = Math.floor(Math.random() * 12);
             const rootNote = NOTES[targetNoteIndex];
 
@@ -785,9 +876,22 @@
                 document.getElementById('theory-content').textContent = THEORY['Free'];
                 return;
             }
-
+            
+            if (mode === 'cof') {
+                toggleVisualArea('cof');
+                isQuizActive = true;
+                const direction = Math.random() < 0.5 ? 'Up' : 'Down';
+                document.getElementById('target-note-display').textContent = `${rootNote} ⮕ 5th ${direction}?`;
+                document.getElementById('message-display').textContent = "Click the note on the wheel.";
+                document.getElementById('theory-content').textContent = THEORY['CoF'];
+                renderCofWheel(rootNote, direction); 
+                return;
+            }
+            
+            // --- FRETBOARD QUIZ MODES (Single, All, Chord, Scale, Name) ---
+            toggleVisualArea('fretboard');
+            
             if (mode === 'name') {
-                toggleVisualArea('fretboard');
                 const validCoords = getValidNameNoteCoordinates();
                 
                 if(validCoords.length === 0) {
@@ -816,22 +920,13 @@
                 
                 playTone(currentReplayFreq);
                 setupMultipleChoice(note);
-                startTimer(); // Start timer for Name Note mode
+                
+                startTime = Date.now(); // Start time tracking
+                startTimer(); 
                 return;
             }
 
-            if (mode === 'cof') {
-                toggleVisualArea('cof');
-                const direction = Math.random() < 0.5 ? 'Up' : 'Down';
-                document.getElementById('target-note-display').textContent = `${rootNote} ⮕ 5th ${direction}?`;
-                document.getElementById('message-display').textContent = "Click the note on the wheel.";
-                document.getElementById('theory-content').textContent = THEORY['CoF'];
-                renderCofWheel(rootNote, direction); 
-                return;
-            }
-
-            // --- FRETBOARD QUIZ MODES (Single, All, Chord, Scale) ---
-            toggleVisualArea('fretboard');
+            // Other Fretboard Quizzes
             if (mode === 'single' || mode === 'all') {
                 targetNotes = [rootNote];
                 document.getElementById('target-note-display').textContent = rootNote;
@@ -859,6 +954,8 @@
                 document.getElementById('message-display').textContent = `Play scale in order (Frets ${baseFret} - ${baseFret + 3})`;
                 document.getElementById('theory-content').textContent = THEORY[`${scaleType}Scale`];
             }
+            
+            startTime = Date.now(); // Start time tracking for fretboard quiz
             updateHints();
         }
 
@@ -883,7 +980,11 @@
                 spot.textContent = note; spot.classList.add('correct');
                 setTimeout(() => spot.classList.remove('correct'), 300); return;
             }
-            if (!isQuizActive || currentMode === 'name') return;
+            // Name mode answers via MC buttons, ignore clicks here
+            if (!isQuizActive || currentMode === 'name') return; 
+            
+            const endTime = Date.now();
+            const timeTaken = (endTime - startTime) / 1000;
 
             let isCorrect = targetNotes.includes(note);
             let isWindowValid = true;
@@ -896,22 +997,37 @@
 
             spot.textContent = note;
             if (isCorrect) {
-                foundCoordinates.push(`${s},${f}`);
-                if (currentMode === 'scale') {
-                    spot.classList.add('sequence-correct'); currentSequenceIndex++;
-                    if (currentSequenceIndex >= 7) winRound();
-                } else {
+                if (currentMode === 'single') {
+                    spot.classList.add('correct'); 
+                    winRound(timeTaken);
+                    spot.style.pointerEvents = 'none'; // Lock single answer
+                } else if (currentMode === 'all') { 
+                    foundCoordinates.push(`${s},${f}`);
                     spot.classList.add('correct');
-                    if (currentMode === 'single') winRound();
-                    else if (currentMode === 'all') { if (foundCoordinates.length >= getAllValidCoordinates(targetNotes).length) winRound(); }
+                    if (foundCoordinates.length >= getAllValidCoordinates(targetNotes).length) winRound(timeTaken);
+                } else if (currentMode === 'scale') {
+                    spot.classList.add('sequence-correct'); currentSequenceIndex++;
+                    if (currentSequenceIndex >= 7) winRound(timeTaken);
                 }
-            } else { spot.classList.add('incorrect'); loseRound(); }
+                // Record answer for fretboard quizzes
+                if (currentMode === 'single' || currentMode === 'all' || currentMode === 'scale') {
+                    // Only record upon *completion* of a question in 'single' or 'all', or on *each correct click* in 'scale'.
+                    // For single/all, winRound handles the final recording. For scale, we record here only for individual notes.
+                    // To simplify and ensure single notes are recorded correctly:
+                    if (currentMode === 'scale' || currentMode === 'single') {
+                       recordAnswer(true, timeTaken);
+                    }
+                }
+            } else { 
+                spot.classList.add('incorrect'); 
+                loseRound(); 
+            }
             
             if (currentMode === 'single') spot.style.pointerEvents = 'none';
         }
 
-        function winRound() {
-            stopTimer(); // Ensure timer stops on win
+        function winRound(timeTaken = 0) {
+            stopTimer(); 
             isQuizActive = false; streak++;
             document.getElementById('streak-display').textContent = streak;
             document.getElementById('message-display').textContent = "Success! Click Next.";
@@ -927,16 +1043,34 @@
                     if(btn) { btn.classList.add('correct-answer'); btn.classList.remove('revealed-answer'); }
                 }
             }
-            // Lock buttons on win
+            
+            // Record if it's Name Note or Fretboard Quiz completion
+            if (currentMode === 'name' || currentMode === 'single' || currentMode === 'all' || currentMode === 'scale') {
+                 // For Name Note and Single, timeTaken is the full duration. For All/Scale, this is just recording success.
+                 // We only record the timeTaken here if we haven't already recorded it in handleNoteClick (e.g., for scale mode single clicks)
+                 if (currentMode === 'name' || currentMode === 'all') {
+                    recordAnswer(true, timeTaken);
+                 } else if (currentMode === 'single' && !timeTaken) {
+                    // This handles the edge case where the correct spot was already clicked
+                    recordAnswer(true, (Date.now() - startTime) / 1000);
+                 }
+                 // Scale mode completion is a bit messy with individual note clicks, but we rely on the cumulative correct count.
+            }
+
             document.getElementById('mc-options').style.pointerEvents = 'none';
         }
 
         function loseRound() {
-            stopTimer(); // Ensure timer stops on loss
+            stopTimer(); 
             isQuizActive = false; streak = 0;
             document.getElementById('streak-display').textContent = streak;
             document.getElementById('message-display').textContent = "Incorrect. Solution revealed.";
             document.getElementById('message-display').style.color = "var(--highlight-orange)";
+            
+            // Record loss
+            if (['single', 'all', 'chord', 'scale', 'name'].includes(currentMode)) {
+                 recordAnswer(false, 0);
+            }
 
             if (currentMode === 'cof') {
                 const w = document.querySelector(`.cof-wedge[data-note="${targetNotes[0]}"]`);
@@ -945,7 +1079,7 @@
                 const btn = document.querySelector('.mc-button.revealed-answer');
                 if(btn) { btn.classList.add('correct-answer'); btn.classList.remove('revealed-answer'); }
             } else { revealAnswers(); }
-            // Lock buttons on loss
+            
             document.getElementById('mc-options').style.pointerEvents = 'none';
         }
 
@@ -980,12 +1114,20 @@
         }
 
         function nextQuestion() {
-            startQuiz(currentMode === 'free' ? 'single' : currentMode);
+            // Determine the next mode based on the current mode
+            let nextMode = currentMode;
+            if (currentMode === 'free') nextMode = 'single';
+            
+            // Re-render fretboard if necessary
+            if(nextMode !== 'cof') renderFretboard(); 
+            
+            startQuiz(nextMode);
         }
 
         window.onload = () => {
-            document.getElementById('range-select').value = '12'; // Set default to 0-12
-            maxFrets = 12; // Update state
+            document.getElementById('range-select').value = '12'; 
+            maxFrets = 12; 
+            updateStatsDisplay(); // Initial stats display
 
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 isDarkMode = true; document.body.classList.add('dark-mode');
@@ -1005,7 +1147,6 @@
             renderFretboard(); 
             renderCofWheel('C', 'Up'); 
             toggleVisualArea('fretboard'); 
-            // Initial call to hide clear button
             updateFilterVisibility('free');
         };
     </script>
