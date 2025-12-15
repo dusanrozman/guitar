@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Fretboard Trainer v9.5</title>
+    <title>Ultimate Fretboard Trainer v9.8</title>
     <style>
         /* --- CSS VARIABLES --- */
         :root {
@@ -102,7 +102,7 @@
             cursor: pointer;
             display: flex; justify-content: center; align-items: center;
             transition: all 0.2s ease;
-            box-shadow: none; /* Override default button shadow */
+            box-shadow: none; 
         }
         .icon-btn:hover { background-color: var(--nav-btn-hover); transform: scale(1.05); }
         .icon-btn.active { background-color: var(--highlight-blue); color: white; box-shadow: 0 0 10px var(--highlight-blue); }
@@ -141,7 +141,8 @@
             font-size: 0.9rem;
         }
         .checkbox-group, .radio-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
-        
+        .checkbox-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
+
         select {
             padding: 5px; font-size: 1rem; border-radius: 6px;
             border: 1px solid #94a3b8; background-color: var(--panel-bg);
@@ -208,38 +209,27 @@
         .stat-value { font-size: 1.1em; font-weight: 900; color: var(--highlight-blue); }
         #timer-display { color: var(--timer-color); font-size: 1.8em; font-weight: 900; min-width: 50px; }
 
-        /* --- KEY BUILDER (FIXED LAYOUT) --- */
+        /* --- KEY BUILDER --- */
         #key-builder-wrapper { display: none; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px; }
-        
         #kb-slots {
-            display: flex; 
-            flex-wrap: nowrap; /* Forces single row */
-            gap: 8px; 
-            justify-content: center;
-            width: 100%; max-width: 900px;
-            overflow-x: auto; /* Safety scroll for tiny screens */
-            padding-bottom: 5px;
+            display: flex; flex-wrap: nowrap; gap: 8px; justify-content: center;
+            width: 100%; max-width: 900px; overflow-x: auto; padding-bottom: 5px;
         }
-        
         .kb-slot {
-            flex: 1; /* Grow evenly */
-            min-width: 45px; max-width: 80px; height: 85px;
+            flex: 1; min-width: 45px; max-width: 80px; height: 85px;
             background-color: var(--slot-bg);
             border: 2px solid var(--fretboard-border);
             border-radius: 8px;
             display: flex; flex-direction: column;
             justify-content: space-between; align-items: center;
-            padding: 5px 2px;
-            font-weight: bold; color: var(--text-color);
+            padding: 5px 2px; font-weight: bold; color: var(--text-color);
             transition: all 0.2s;
         }
         .kb-degree { font-size: 0.8em; opacity: 0.7; }
         .kb-note { font-size: 1.6em; font-weight: 900; margin-top: 10px; }
-        
         .kb-slot.filled { background-color: #dbeafe; border-color: var(--highlight-blue); }
         .kb-slot.correct-reveal { background-color: var(--highlight-green); border-color: var(--highlight-green); color: white; }
         .kb-slot.correct-reveal .kb-note { color: white; }
-
         .kb-slot.active-target { border-color: var(--highlight-orange); box-shadow: 0 0 8px var(--highlight-orange); transform: translateY(-3px); }
 
         /* --- MULTIPLE CHOICE GRID --- */
@@ -259,18 +249,14 @@
             min-height: 60px; cursor: pointer; position: relative;
         }
         .mc-button:active { transform: translateY(4px); box-shadow: none; }
-        
         .mc-button.correct-answer { background-color: var(--highlight-blue); color: white; }
         .mc-button.wrong-answer { background-color: var(--highlight-orange); color: white; }
         .mc-button.revealed-answer { background-color: var(--highlight-green); color: white; }
-        
-        /* Key Builder States */
         .mc-button.kb-selected { background-color: var(--highlight-blue); color: white; top: 4px; box-shadow: none; } 
         .mc-button.kb-right { background-color: var(--highlight-green); color: white; } 
         .mc-button.kb-wrong { background-color: var(--highlight-orange); color: white; } 
         .mc-button.kb-missed { background-color: var(--highlight-yellow); color: black; border: 2px dashed black; }
-        
-        /* Hint Pulse Animation */
+
         @keyframes pulse-hint {
             0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7); border: 2px solid var(--highlight-orange); transform: scale(1); }
             50% { box-shadow: 0 0 0 10px rgba(234, 88, 12, 0); border: 2px solid var(--highlight-orange); transform: scale(1.1); }
@@ -316,12 +302,30 @@
         .nut-column .note-spot { color: var(--text-color); }
         .note-spot:hover { background-color: rgba(255,255,255,0.2); transform: scale(1.15); }
         
+        /* Game States */
         .correct { background-color: var(--highlight-blue) !important; border: 2px solid white; box-shadow: 0 0 10px var(--highlight-blue); }
         .incorrect { background-color: var(--highlight-orange) !important; border: 2px solid white; }
         .revealed { background-color: var(--highlight-yellow) !important; color: black !important; border: 2px solid black; }
         .sequence-correct { background-color: #9333ea !important; border: 2px solid white; }
         
-        /* Hint Logic for Fretboard */
+        /* PULSING TARGET QUESTION MARK */
+        @keyframes target-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            50% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        .highlighted-question {
+            background-color: var(--highlight-blue) !important;
+            border: 2px solid white;
+            color: white !important;
+            animation: target-pulse 1.5s infinite;
+            z-index: 20;
+        }
+        .highlighted-question::after {
+            content: "?"; font-size: 1.2rem; font-weight: 900;
+        }
+        
         .hint-marker { background-color: rgba(255, 255, 255, 0.3); border: 2px dashed var(--highlight-yellow); }
         
         /* --- COF --- */
@@ -339,7 +343,9 @@
 
     </style>
 </head>
-<body class="dark-mode"> <nav id="top-bar">
+<body class="dark-mode">
+
+    <nav id="top-bar">
         <div class="nav-group">
             <button id="theory-btn" class="icon-btn" onclick="toggleTheory()" title="Toggle Theory Lesson">📖</button>
             <button id="hint-btn" class="icon-btn" onclick="toggleHintMode()" title="Toggle Hints">❓</button>
@@ -395,6 +401,30 @@
                         <option value="24">0 - 24</option>
                     </select>
                 </div>
+
+                <div class="setting-group filter-group" id="note-pool-setting" style="display:none;">
+                    <label><strong>Notes to Quiz</strong></label>
+                    <select id="note-pool-select" onchange="nextQuestion()">
+                        <option value="all">All Notes</option>
+                        <option value="naturals">Natural Notes</option>
+                        <option value="accidentals">Sharps/Flats</option>
+                        <option value="sharps">Sharps Only</option>
+                        <option value="flats">Flats Only</option>
+                        <option value="anchors">Anchor Dots</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group filter-group" id="string-filters" style="display:none;">
+                    <label><strong>Strings</strong></label>
+                    <div class="checkbox-group" style="gap:5px;">
+                        <label><input type="checkbox" class="string-chk" value="5" checked onchange="nextQuestion()"> <span id="str-lab-5">E</span></label>
+                        <label><input type="checkbox" class="string-chk" value="4" checked onchange="nextQuestion()"> <span id="str-lab-4">A</span></label>
+                        <label><input type="checkbox" class="string-chk" value="3" checked onchange="nextQuestion()"> <span id="str-lab-3">D</span></label>
+                        <label><input type="checkbox" class="string-chk" value="2" checked onchange="nextQuestion()"> <span id="str-lab-2">G</span></label>
+                        <label><input type="checkbox" class="string-chk" value="1" checked onchange="nextQuestion()"> <span id="str-lab-1">B</span></label>
+                        <label><input type="checkbox" class="string-chk" value="0" checked onchange="nextQuestion()"> <span id="str-lab-0">E</span></label>
+                    </div>
+                </div>
                 
                 <div class="setting-group filter-group" id="timer-setting" style="display:none;">
                     <label><strong>Timer</strong></label>
@@ -420,18 +450,6 @@
                     <div class="radio-group">
                         <input type="radio" name="scale_type" id="scale_major" value="Major" checked><label for="scale_major">Major</label>
                         <input type="radio" name="scale_type" id="scale_minor" value="Minor"><label for="scale_minor">Nat. Minor</label>
-                    </div>
-                </div>
-                
-                <div class="setting-group filter-group" id="name-note-string-filters" style="display:none;">
-                    <label><strong>Focus Strings</strong></label>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="string_5" data-s="5" checked><label>E</label>
-                        <input type="checkbox" id="string_4" data-s="4" checked><label>A</label>
-                        <input type="checkbox" id="string_3" data-s="3" checked><label>D</label>
-                        <input type="checkbox" id="string_2" data-s="2" checked><label>G</label>
-                        <input type="checkbox" id="string_1" data-s="1" checked><label>B</label>
-                        <input type="checkbox" id="string_0" data-s="0" checked><label>e</label>
                     </div>
                 </div>
             </div>
@@ -504,34 +522,17 @@
             osc.stop(now + duration + 0.1);
         }
 
-        // --- FAILURE WAH-WAH (3-note descending tone) ---
         function playFailureWahWah() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const now = audioCtx.currentTime;
-            
-            // Frequencies for G-F-E descending minor third
-            const notes = [
-                { f: 196.00, t: now }, // G3
-                { f: 174.61, t: now + 0.2 }, // F3
-                { f: 164.81, t: now + 0.4 } // E3
-            ];
-            
-            const noteDuration = 0.3;
-            
+            const notes = [{ f: 196.00, t: now }, { f: 174.61, t: now + 0.2 }, { f: 164.81, t: now + 0.4 }];
             notes.forEach(note => {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'triangle';
+                const osc = audioCtx.createOscillator(); osc.type = 'triangle';
                 osc.frequency.setValueAtTime(note.f, note.t);
-                
-                const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0, note.t);
-                gain.gain.linearRampToValueAtTime(0.3, note.t + 0.05);
-                gain.gain.linearRampToValueAtTime(0.001, note.t + noteDuration);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(note.t);
-                osc.stop(note.t + noteDuration);
+                const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0, note.t);
+                gain.gain.linearRampToValueAtTime(0.3, note.t + 0.05); gain.gain.linearRampToValueAtTime(0.001, note.t + 0.3);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(note.t); osc.stop(note.t + 0.3);
             });
         }
 
@@ -540,7 +541,6 @@
             return openFreq * Math.pow(2, fret / 12);
         }
         
-        // C3 Frequency (Root of Octave 3 - Lowered for Key Builder)
         const C3_FREQ = 130.81; 
 
         function shuffleArray(array) {
@@ -552,20 +552,15 @@
 
         /* --- DATA --- */
         const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const FLAT_NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
         const NOTES_TO_INDEX = Object.fromEntries(NOTES.map((note, index) => [note, index]));
-        const NATURAL_NOTES = ["C", "D", "E", "F", "G", "A", "B"];
-        const ACCIDENTAL_NOTES = ["C#", "D#", "F#", "G#", "A#"];
-        const ANCHOR_FRETS = [0, 3, 5, 7, 9, 12, 15, 17, 19, 21, 24]; 
+        const ANCHOR_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24]; 
         const TUNING_INDICES = { 'standard': [4, 11, 7, 2, 9, 4], 'drop_d': [4, 11, 7, 2, 9, 2], 'dadgad': [2, 9, 7, 2, 9, 2], 'open_g': [2, 11, 7, 2, 7, 2] };
         const TUNINGS = { 'standard': [329.63, 246.94, 196.00, 146.83, 110.00, 82.41], 'drop_d': [329.63, 246.94, 196.00, 146.83, 110.00, 73.42], 'dadgad': [293.66, 220.00, 196.00, 146.83, 110.00, 73.42], 'open_g': [293.66, 246.94, 196.00, 146.83, 98.00, 73.42] };
         const CHORD_INTERVALS = { 'Maj': [0, 4, 7], 'Min': [0, 3, 7], '7': [0, 4, 7, 10] };
         const SCALE_INTERVALS = { 'Major': [0, 2, 4, 5, 7, 9, 11], 'Minor': [0, 2, 3, 5, 7, 8, 10] };
-        const SCALE_DEGREES = { 
-            'Major': ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], 
-            'Minor': ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII']
-        };
+        const SCALE_DEGREES = { 'Major': ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], 'Minor': ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'] };
         
-        // UPGRADED THEORY DATA
         const THEORY = {
             'Free': { concept: "Exploration", strategy: "No rules. Click to hear notes and visualize intervals." },
             'Single': { concept: "Chromatic Scale: 12 unique notes that repeat.", strategy: "Don't count up from 0. Memorize 'Anchor Notes' on dots (Frets 3, 5, 7, 9) and relate nearby notes to them." },
@@ -596,9 +591,8 @@
         const FRET_SPAN = 4;
         
         let currentReplayFreq = 0;
-        let lastPlayedIndex = -1; // NEW: Track last note INDEX (0-11) for stable pitch tracking in builder
+        let lastPlayedIndex = -1; 
         let timerInterval;
-        let timerDuration = 0;
         let startTime; 
 
         // STATS
@@ -610,25 +604,18 @@
         function toggleTheme() {
             isDarkMode = !isDarkMode;
             document.body.classList.toggle('dark-mode', isDarkMode);
-            const btn = document.getElementById('theme-btn');
-            // Logic: 💡 = Light Mode is Active. 🌑 = Dark Mode.
-            btn.textContent = isDarkMode ? "🌑" : "💡"; 
+            document.getElementById('theme-btn').textContent = isDarkMode ? "🌑" : "💡"; 
         }
 
         function toggleTheory() {
             theoryVisible = !theoryVisible;
-            const p = document.getElementById('theory-panel');
-            const btn = document.getElementById('theory-btn');
-            p.style.display = theoryVisible ? 'block' : 'none';
-            if(theoryVisible) btn.classList.add('active'); else btn.classList.remove('active');
+            document.getElementById('theory-panel').style.display = theoryVisible ? 'block' : 'none';
+            document.getElementById('theory-btn').classList.toggle('active', theoryVisible);
         }
 
         function toggleHintMode() {
             hintMode = !hintMode;
-            const btn = document.getElementById('hint-btn');
-            if(hintMode) btn.classList.add('active'); else btn.classList.remove('active');
-            
-            // Trigger updates
+            document.getElementById('hint-btn').classList.toggle('active', hintMode);
             if(currentMode === 'cof') updateCofHints();
             else if (currentMode === 'key_builder') highlightBuilderHint();
             else updateHints();
@@ -663,9 +650,26 @@
         function changeSetting() {
             currentTuningName = document.getElementById('tuning-select').value;
             maxFrets = parseInt(document.getElementById('range-select').value);
+            updateStringLabels(); // Updates the checkbox text E-A-D-G-B-E
             renderFretboard();
             const modeToStart = (currentMode === 'free' || currentMode === 'cof' || currentMode === 'key_builder') ? 'single' : currentMode;
             if(currentMode !== 'cof' && currentMode !== 'free' && currentMode !== 'key_builder') startQuiz(modeToStart); 
+        }
+
+        /* --- LABEL UPDATER FOR CHECKBOXES --- */
+        function updateStringLabels() {
+            const indices = TUNING_INDICES[currentTuningName]; 
+            // indices array is [High E, B, G, D, A, Low E] order based on array structure:
+            // 0: High E, 1: B, 2: G, 3: D, 4: A, 5: Low E.
+            
+            for(let i=0; i<6; i++) {
+                // DOM element IDs are str-lab-0 (High E) through str-lab-5 (Low E)
+                // We just match the index to the note name
+                const noteIndex = indices[i]; 
+                const noteName = NOTES[noteIndex];
+                const el = document.getElementById(`str-lab-${i}`);
+                if(el) el.textContent = noteName;
+            }
         }
 
         /* --- RENDERING --- */
@@ -706,22 +710,16 @@
         function renderCofWheel(rootNote, direction) {
             const ring = document.querySelector('#cof-wrapper .cof-ring');
             ring.querySelectorAll('.cof-wedge-container').forEach(c => c.remove()); 
-            
             document.getElementById('cof-root-note').textContent = rootNote;
-            
             for (let i = 0; i < 12; i++) {
                 const noteIndex = COF_ORDER[i];
                 const note = NOTES[noteIndex];
                 const container = document.createElement('div'); container.className = 'cof-wedge-container';
                 container.style.transform = `rotate(${i * 30}deg)`;
-                
                 const wedge = document.createElement('div'); wedge.className = 'cof-wedge';
                 wedge.setAttribute('data-note', note); wedge.onclick = handleCofClick;
-                
                 const label = document.createElement('div'); label.className = 'cof-note-label'; label.textContent = note;
-                const labelRotation = 30 * i + 15; 
-                label.style.transform = `rotate(${labelRotation}deg) translate(130px, -10px)`;
-                
+                label.style.transform = `rotate(${30 * i + 15}deg) translate(130px, -10px)`;
                 container.appendChild(wedge); container.appendChild(label); ring.appendChild(container);
             }
             ring.appendChild(document.getElementById('cof-center-display'));
@@ -730,14 +728,10 @@
 
         /* --- HINT SYSTEM --- */
         function highlightBuilderHint() {
-            // Clear existing
             document.querySelectorAll('.mc-button').forEach(b => b.classList.remove('hint-active'));
             if (!hintMode || !isQuizActive || currentMode !== 'key_builder') return;
-            
-            // Find next target note
             const nextNote = targetNotes[currentSequenceIndex];
-            const btnId = `btn-note-${nextNote.replace('#', 's')}`;
-            const btn = document.getElementById(btnId);
+            const btn = document.getElementById(`btn-note-${nextNote.replace('#', 's')}`);
             if(btn) btn.classList.add('hint-active');
         }
 
@@ -752,49 +746,15 @@
         function updateHints() {
             document.querySelectorAll('.note-spot').forEach(s => s.classList.remove('hint-marker'));
             if (!hintMode || !isQuizActive) return;
-
-            // Strategy: Show target notes faintly
-            if(currentMode === 'name') {
-                // Hint: Highlight the open string note
-                 const targetSpot = document.querySelector('.highlighted-question');
-                 if(targetSpot) {
-                     const s = targetSpot.getAttribute('data-s');
-                     const openSpot = document.querySelector(`.note-spot[data-s="${s}"][data-f="0"]`);
-                     if(openSpot) openSpot.classList.add('hint-marker');
-                 }
-            } else {
-                // Find/Scale/Chord Hint
+            // General hints
+            if(currentMode !== 'name') {
                 document.querySelectorAll('.note-spot').forEach(s => {
                     const note = s.getAttribute('data-note');
                     const f = parseInt(s.getAttribute('data-f'));
-                    // Only hint valid window or all if free
                     let isWindowValid = (baseFret === -1) ? true : (f >= baseFret && f < baseFret + FRET_SPAN) || f===0;
-                    
-                    if(targetNotes.includes(note) && isWindowValid) {
-                        s.classList.add('hint-marker');
-                    }
+                    if(targetNotes.includes(note) && isWindowValid) s.classList.add('hint-marker');
                 });
             }
-        }
-
-        function setTheoryContent(mode) {
-            let key = mode;
-            if(mode === 'single' || mode === 'all') key = 'Single';
-            if(mode === 'chord') {
-                 if(document.getElementById('chord_maj').checked) key = 'Maj'; 
-                 // Simple logic: just show first checked or generic
-                 else key = 'Maj'; 
-            } 
-            if(mode === 'scale') key = document.querySelector('input[name="scale_type"]:checked').value + 'Scale';
-            if(mode === 'key_builder') key = 'KeyBuilder';
-            if(mode === 'cof') key = 'CoF';
-            if(mode === 'name') key = 'Name';
-            if(mode === 'free') key = 'Free';
-
-            const data = THEORY[key] || THEORY['Free'];
-            document.getElementById('theory-title').textContent = (mode === 'key_builder') ? 'Key Construction' : (mode.charAt(0).toUpperCase() + mode.slice(1));
-            document.getElementById('theory-concept').textContent = data.concept;
-            document.getElementById('theory-strategy').textContent = data.strategy;
         }
 
         /* --- GAME LOGIC --- */
@@ -803,7 +763,7 @@
             clearBoardMarkers();
             currentMode = mode;
             isQuizActive = (mode !== 'free');
-            lastPlayedIndex = -1; // Reset last played index for new quiz
+            lastPlayedIndex = -1; 
 
             // UI Setup
             document.getElementById('fretboard-wrapper').style.display = 'none';
@@ -811,14 +771,16 @@
             document.getElementById('key-builder-wrapper').style.display = 'none';
             document.getElementById('mc-options').style.display = 'none';
             document.getElementById('replay-btn').style.display = 'none';
+            document.getElementById('target-note-display').style.display = 'block'; // Default show
             
-            // Filter Visibility
             document.querySelectorAll('.filter-group').forEach(g => g.style.display = 'none');
             document.getElementById('clear-board-btn').style.display = 'none';
             
             if(mode === 'name') {
-                document.getElementById('name-note-string-filters').style.display = 'flex';
+                document.getElementById('note-pool-setting').style.display = 'flex';
+                document.getElementById('string-filters').style.display = 'flex'; // SHOW STRING FILTERS
                 document.getElementById('timer-setting').style.display = 'flex';
+                document.getElementById('target-note-display').style.display = 'none'; // HIDE BIG ?
             } else if (mode === 'chord') {
                 document.getElementById('chord-filters').style.display = 'flex';
             } else if (mode === 'scale' || mode === 'key_builder') {
@@ -826,10 +788,22 @@
             }
             if(mode === 'key_builder') document.getElementById('timer-setting').style.display = 'flex';
 
-            setTheoryContent(mode);
+            // Set Theory Content
+            let key = mode;
+            if(mode === 'single' || mode === 'all') key = 'Single';
+            if(mode === 'chord') key = 'Maj'; 
+            if(mode === 'scale') key = document.querySelector('input[name="scale_type"]:checked').value + 'Scale';
+            if(mode === 'key_builder') key = 'KeyBuilder';
+            if(mode === 'cof') key = 'CoF';
+            if(mode === 'name') key = 'Name';
+            if(mode === 'free') key = 'Free';
+            document.getElementById('theory-title').textContent = (mode === 'key_builder') ? 'Key Construction' : (mode.charAt(0).toUpperCase() + mode.slice(1));
+            document.getElementById('theory-concept').textContent = THEORY[key].concept;
+            document.getElementById('theory-strategy').textContent = THEORY[key].strategy;
+
             foundCoordinates = [];
             currentSequenceIndex = 0;
-            targetNoteIndex = Math.floor(Math.random() * 12);
+            const targetNoteIndex = Math.floor(Math.random() * 12);
             const rootNote = NOTES[targetNoteIndex];
 
             // --- MODE SWITCH ---
@@ -847,7 +821,6 @@
                 const offset = direction === 'Up' ? 7 : 5;
                 const targetIdx = (NOTES.indexOf(rootNote) + offset) % 12;
                 targetNotes = [NOTES[targetIdx]];
-                
                 document.getElementById('target-note-display').textContent = `${rootNote} ⮕ 5th ${direction}?`;
                 document.getElementById('message-display').textContent = direction === 'Up' ? "Clockwise (Sharp direction)" : "Counter-Clockwise (Flat direction)";
                 renderCofWheel(rootNote, direction);
@@ -857,41 +830,28 @@
             if (mode === 'key_builder') {
                 document.getElementById('key-builder-wrapper').style.display = 'flex';
                 document.getElementById('mc-options').style.display = 'grid';
-                
                 const scaleType = document.querySelector('input[name="scale_type"]:checked').value; 
                 targetNotes = SCALE_INTERVALS[scaleType].map(i => NOTES[(targetNoteIndex + i) % 12]);
-                
                 document.getElementById('target-note-display').textContent = `Build ${rootNote} ${scaleType}`;
                 document.getElementById('message-display').textContent = "Select intervals in order.";
-                
-                // Set last played index to the root note (used for ascending logic)
                 lastPlayedIndex = NOTES_TO_INDEX[rootNote];
                 
-                // Render Slots
                 const slotsDiv = document.getElementById('kb-slots');
                 slotsDiv.innerHTML = '';
                 SCALE_DEGREES[scaleType].forEach((deg, i) => {
-                    const slot = document.createElement('div');
-                    slot.className = 'kb-slot';
-                    slot.id = `kb-slot-${i}`;
+                    const slot = document.createElement('div'); slot.className = 'kb-slot'; slot.id = `kb-slot-${i}`;
                     slot.innerHTML = `<span class="kb-note">?</span><span class="kb-degree">${deg}</span>`;
                     slotsDiv.appendChild(slot);
                 });
                 document.getElementById('kb-slot-0').classList.add('active-target');
                 
-                // Render MC Buttons (Chromatic)
                 const mcDiv = document.getElementById('mc-options');
                 mcDiv.innerHTML = '';
                 NOTES.forEach(n => {
-                    const btn = document.createElement('button');
-                    btn.className = 'mc-button';
-                    btn.textContent = n;
-                    btn.setAttribute('data-answer', n);
-                    btn.id = `btn-note-${n.replace('#', 's')}`;
-                    btn.onclick = handleBuilderClick;
+                    const btn = document.createElement('button'); btn.className = 'mc-button'; btn.textContent = n;
+                    btn.setAttribute('data-answer', n); btn.id = `btn-note-${n.replace('#', 's')}`; btn.onclick = handleBuilderClick;
                     mcDiv.appendChild(btn);
                 });
-                
                 startTime = Date.now();
                 startTimer();
                 highlightBuilderHint();
@@ -903,35 +863,83 @@
             baseFret = -1;
             
             if (mode === 'name') {
-                const s = Math.floor(Math.random() * 6);
-                const f = Math.floor(Math.random() * (maxFrets+1));
-                const note = getNote(s, f);
-                targetNotes = [note];
-                currentReplayFreq = calculateFrequency(s, f);
                 document.getElementById('replay-btn').style.display = 'block';
                 document.getElementById('mc-options').style.display = 'grid';
+                document.getElementById('message-display').textContent = "Identify the glowing note.";
                 
-                document.getElementById('target-note-display').textContent = "?";
-                document.getElementById('message-display').textContent = "Identify the highlighted note.";
+                // --- NOTE POOL & STRING LOGIC ---
+                const poolType = document.getElementById('note-pool-select').value;
+                const activeStrings = Array.from(document.querySelectorAll('.string-chk:checked')).map(cb => parseInt(cb.value));
+
+                let validCoordinates = [];
                 
-                // Highlight Spot
-                const spot = document.querySelector(`.note-spot[data-s="${s}"][data-f="${f}"]`);
-                if (spot) { spot.classList.add('highlighted-question'); spot.style.pointerEvents = 'none'; }
+                // Generate all valid string/fret pairs based on filters
+                for(let s=0; s<6; s++) {
+                    if(!activeStrings.includes(s)) continue; // Check string filter
+                    for(let f=0; f<=maxFrets; f++) {
+                        const note = getNote(s, f);
+                        const isSharp = note.includes('#');
+                        
+                        let isValid = false;
+                        if(poolType === 'all') isValid = true;
+                        else if(poolType === 'naturals' && !isSharp) isValid = true;
+                        else if(poolType === 'accidentals' && isSharp) isValid = true;
+                        else if(poolType === 'sharps' && isSharp) isValid = true;
+                        else if(poolType === 'flats' && isSharp) isValid = true; 
+                        else if(poolType === 'anchors' && ANCHOR_FRETS.includes(f)) isValid = true;
+                        
+                        if(isValid) validCoordinates.push({s, f, note});
+                    }
+                }
+                
+                // Fallback if no valid notes (e.g. user unchecked everything)
+                if(validCoordinates.length === 0) validCoordinates.push({s:0, f:0, note:'E'}); 
+                
+                const selection = validCoordinates[Math.floor(Math.random() * validCoordinates.length)];
+                
+                targetNotes = [selection.note];
+                currentReplayFreq = calculateFrequency(selection.s, selection.f);
                 playTone(currentReplayFreq);
                 
-                // MC Buttons (Random 4)
+                // Highlight Spot 
+                setTimeout(() => {
+                    const spot = document.querySelector(`.note-spot[data-s="${selection.s}"][data-f="${selection.f}"]`);
+                    if (spot) {
+                        spot.textContent = ""; 
+                        spot.classList.add('highlighted-question'); 
+                        spot.style.pointerEvents = 'none'; 
+                    }
+                }, 10);
+                
+                // MC Buttons
                 const mcDiv = document.getElementById('mc-options');
                 mcDiv.innerHTML = '';
-                let opts = [note, ...generateDistractors(NOTES.indexOf(note))];
-                shuffleArray(opts);
-                opts.forEach(n => {
+                
+                const showFlats = (poolType === 'flats');
+                
+                let correctAnswerLabel = targetNotes[0];
+                if(showFlats) {
+                    const idx = NOTES.indexOf(targetNotes[0]);
+                    correctAnswerLabel = FLAT_NOTES[idx];
+                }
+
+                // Generate distractors
+                let optsIdx = [NOTES.indexOf(targetNotes[0])];
+                while(optsIdx.length < 4) {
+                    let r = Math.floor(Math.random() * 12);
+                    if(!optsIdx.includes(r)) optsIdx.push(r);
+                }
+                shuffleArray(optsIdx);
+                
+                optsIdx.forEach(idx => {
                     const btn = document.createElement('button');
                     btn.className = 'mc-button';
-                    btn.textContent = n;
-                    btn.setAttribute('data-answer', n);
+                    btn.textContent = showFlats ? FLAT_NOTES[idx] : NOTES[idx];
+                    btn.setAttribute('data-answer', NOTES[idx]);
                     btn.onclick = handleMcAnswer;
                     mcDiv.appendChild(btn);
                 });
+
             } else {
                 // Single/Scale/Chord/All
                 if (mode === 'single' || mode === 'all') {
@@ -939,16 +947,13 @@
                     document.getElementById('target-note-display').textContent = rootNote;
                     document.getElementById('message-display').textContent = mode === 'single' ? "Find ONE instance." : "Find ALL instances.";
                 } else {
-                    // Chord/Scale
                     const type = mode === 'chord' ? 'Maj' : document.querySelector('input[name="scale_type"]:checked').value;
-                    // For demo simplicity, defaulting chord to Major if not specific logic used
                     targetNotes = (mode==='chord'?CHORD_INTERVALS['Maj']:SCALE_INTERVALS[type]).map(i => NOTES[(targetNoteIndex + i) % 12]);
                     baseFret = Math.floor(Math.random() * (maxFrets - FRET_SPAN));
                     document.getElementById('target-note-display').textContent = `${rootNote} ${type}`;
                     document.getElementById('message-display').textContent = `Range: Frets ${baseFret}-${baseFret+3}`;
                 }
             }
-            
             startTime = Date.now();
             updateHints();
         }
@@ -959,33 +964,19 @@
             const btn = e.currentTarget;
             const selected = btn.getAttribute('data-answer');
             const correct = targetNotes[currentSequenceIndex];
-            
             const selectedNoteIndex = NOTES_TO_INDEX[selected];
             
-            // Calculate frequency based on C3 (130.81 Hz - Lowered for Key Builder)
             let freq = C3_FREQ * Math.pow(2, selectedNoteIndex / 12);
-            
-            // Pitch logic: Keep the note in the same octave (C3-B3) unless it's the first note
-            if (currentSequenceIndex > 0) {
-                // If the selected note (e.g., C) has a lower index than the previous note (e.g., B), 
-                // it means we have crossed the octave boundary and need to jump up one octave (C4).
-                if (selectedNoteIndex <= lastPlayedIndex) {
-                    freq *= 2; 
-                }
-            }
-            
-            // Update last played index for the next check
+            if (currentSequenceIndex > 0 && selectedNoteIndex <= lastPlayedIndex) freq *= 2; 
             lastPlayedIndex = selectedNoteIndex;
 
             if(selected === correct) {
-                // Correct
                 btn.classList.add('kb-selected');
                 const slot = document.getElementById(`kb-slot-${currentSequenceIndex}`);
                 slot.classList.add('filled');
                 slot.querySelector('.kb-note').textContent = selected;
                 slot.classList.remove('active-target');
-                
-                playTone(freq, 0.4, 'sine', 0.5); // Use SINE wave for a guitar-like tone
+                playTone(freq, 0.4, 'sine', 0.5); 
                 
                 currentSequenceIndex++;
                 if(currentSequenceIndex >= targetNotes.length) {
@@ -1026,13 +1017,8 @@
             const note = spot.getAttribute('data-note');
             playTone(calculateFrequency(spot.getAttribute('data-s'), spot.getAttribute('data-f')));
 
-            // Validation
             let isValid = targetNotes.includes(note);
-            // Check Scale Order
-            if(currentMode === 'scale' && isValid) {
-                 isValid = (note === targetNotes[currentSequenceIndex % 7]);
-            }
-            // Check Fret Window
+            if(currentMode === 'scale' && isValid) isValid = (note === targetNotes[currentSequenceIndex % 7]);
             if(baseFret > -1) {
                 const f = parseInt(spot.getAttribute('data-f'));
                 if(f !== 0 && (f < baseFret || f >= baseFret + FRET_SPAN)) isValid = false;
@@ -1042,16 +1028,14 @@
             if(isValid) {
                 spot.classList.add(currentMode === 'scale' ? 'sequence-correct' : 'correct');
                 spot.style.pointerEvents = 'none';
-                
                 if(currentMode === 'single') winRound((Date.now() - startTime)/1000);
                 else if (currentMode === 'scale') {
                     currentSequenceIndex++;
                     if(currentSequenceIndex >= 7) winRound((Date.now() - startTime)/1000);
                 }
                 else if (currentMode === 'all') {
-                    // Simple "find enough" logic
                     foundCoordinates.push(spot);
-                    if(foundCoordinates.length >= 2) winRound((Date.now() - startTime)/1000); // reduced threshold for demo
+                    if(foundCoordinates.length >= 2) winRound((Date.now() - startTime)/1000); 
                 }
             } else {
                 spot.classList.add('incorrect');
@@ -1078,61 +1062,45 @@
             document.getElementById('message-display').style.color = "var(--highlight-green)";
             recordAnswer(true, time);
             document.querySelectorAll('.mc-button').forEach(b => b.onclick = null);
-
-            if(currentMode === 'key_builder') {
-                revealKeyBuilderNotes();
-            }
+            if(currentMode === 'key_builder') revealKeyBuilderNotes();
         }
 
         function loseRound() {
             isQuizActive = false; streak = 0;
             document.getElementById('streak-display').textContent = streak;
-            document.getElementById('message-display').textContent = "Incorrect. Wah-wah...";
+            document.getElementById('message-display').textContent = "Incorrect.";
             document.getElementById('message-display').style.color = "var(--highlight-orange)";
             recordAnswer(false);
-            
-            // **FAILURE WAH-WAH**
             playFailureWahWah();
-            lastPlayedIndex = -1; // Reset octave tracking on failure
-
-            if(currentMode === 'key_builder') {
-                revealKeyBuilderNotes();
-            }
+            lastPlayedIndex = -1; 
+            if(currentMode === 'key_builder') revealKeyBuilderNotes();
             
             if(currentMode === 'name') {
+                // Reveal logic for Name Game
                 document.querySelectorAll('.mc-button').forEach(b => {
                     if(b.getAttribute('data-answer') === targetNotes[0]) b.classList.add('revealed-answer');
                 });
+                // Show note on board
+                const t = document.querySelector('.highlighted-question');
+                if(t) t.textContent = targetNotes[0];
             }
         }
         
         function revealKeyBuilderNotes() {
-             // 1. Fill the slots with correct notes and color them green
             targetNotes.forEach((note, i) => {
                 const slot = document.getElementById(`kb-slot-${i}`);
                 if (slot) {
-                    slot.classList.remove('filled', 'active-target');
-                    slot.classList.add('correct-reveal');
+                    slot.classList.remove('filled', 'active-target'); slot.classList.add('correct-reveal');
                     slot.querySelector('.kb-note').textContent = note;
                 }
             });
-
-            // 2. Highlight missed buttons (only applies if failed)
             document.querySelectorAll('.mc-button').forEach(btn => {
                 const note = btn.getAttribute('data-answer');
                 const isCorrectNote = targetNotes.includes(note);
                 const wasSelected = btn.classList.contains('kb-selected') || btn.classList.contains('kb-wrong');
-
-                btn.onclick = null; // Disable further clicking
-
+                btn.onclick = null; 
                 if (isCorrectNote && !wasSelected) {
-                    // Missed note that was part of the key
-                    btn.classList.remove('kb-selected', 'kb-right', 'kb-wrong');
-                    btn.classList.add('kb-missed');
-                } else if (!isCorrectNote && wasSelected) {
-                    // Wrong note that was selected (already handled by kb-wrong)
-                } else if (isCorrectNote && wasSelected) {
-                    // Correct note that was selected (already handled by kb-right)
+                    btn.classList.remove('kb-selected', 'kb-right', 'kb-wrong'); btn.classList.add('kb-missed');
                 }
             });
         }
@@ -1151,20 +1119,11 @@
         }
         
         function replayTargetTone() { if(currentReplayFreq) playTone(currentReplayFreq); }
-        function resetTimer() { 
-            // Simplified for this snippet length, assumed working from previous versions
-            if(isQuizActive) startTimer(); 
-        }
-        function startTimer() { 
-            // Simplified for this snippet length, assumed working from previous versions
-        }
+        function resetTimer() { if(isQuizActive) startTimer(); }
+        function startTimer() { } // Simplified for snippet
         function stopTimer() { clearInterval(timerInterval); document.getElementById('timer-display').textContent = ''; }
-        function generateDistractors(idx) {
-            return [(idx+1)%12, (idx+11)%12, (idx+7)%12].map(i => NOTES[i]);
-        }
         
-        // Init
-        window.onload = () => { renderFretboard(); }
+        window.onload = () => { updateStringLabels(); renderFretboard(); }
     </script>
 </body>
 </html>
