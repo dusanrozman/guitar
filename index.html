@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Fretboard Trainer v9.8</title>
+    <title>Ultimate Fretboard Trainer v10.4 (Voice Sharp/Flat Fix)</title>
     <style>
         /* --- CSS VARIABLES --- */
         :root {
@@ -103,9 +103,21 @@
             display: flex; justify-content: center; align-items: center;
             transition: all 0.2s ease;
             box-shadow: none; 
+            position: relative;
         }
         .icon-btn:hover { background-color: var(--nav-btn-hover); transform: scale(1.05); }
         .icon-btn.active { background-color: var(--highlight-blue); color: white; box-shadow: 0 0 10px var(--highlight-blue); }
+        
+        /* Voice Button Pulse Animation */
+        @keyframes listening-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+        .icon-btn.listening {
+            background-color: #ef4444; color: white;
+            animation: listening-pulse 1.5s infinite;
+        }
 
         /* --- HEADER --- */
         h1 { margin: 10px 0 5px 0; font-size: 2.2rem; letter-spacing: -1px; }
@@ -235,7 +247,6 @@
         /* --- MULTIPLE CHOICE GRID --- */
         #mc-options {
             display: none; 
-            display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); 
             gap: 10px;
             padding: 0 10px 20px 10px; margin: 0 auto; max-width: 700px; 
@@ -347,6 +358,7 @@
 
     <nav id="top-bar">
         <div class="nav-group">
+            <button id="voice-btn" class="icon-btn" onclick="toggleVoiceMode()" title="Toggle Voice Control (Mic)">🎙️</button>
             <button id="theory-btn" class="icon-btn" onclick="toggleTheory()" title="Toggle Theory Lesson">📖</button>
             <button id="hint-btn" class="icon-btn" onclick="toggleHintMode()" title="Toggle Hints">❓</button>
         </div>
@@ -522,6 +534,25 @@
             osc.stop(now + duration + 0.1);
         }
 
+        function playSuccessJingle() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99]; 
+            notes.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(freq, now + (i * 0.08)); 
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0, now + (i * 0.08));
+                gain.gain.linearRampToValueAtTime(0.1, now + (i * 0.08) + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.08) + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + (i * 0.08));
+                osc.stop(now + (i * 0.08) + 0.5);
+            });
+        }
+
         function playFailureWahWah() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const now = audioCtx.currentTime;
@@ -564,7 +595,7 @@
         const THEORY = {
             'Free': { concept: "Exploration", strategy: "No rules. Click to hear notes and visualize intervals." },
             'Single': { concept: "Chromatic Scale: 12 unique notes that repeat.", strategy: "Don't count up from 0. Memorize 'Anchor Notes' on dots (Frets 3, 5, 7, 9) and relate nearby notes to them." },
-            'Name': { concept: "Pitch Identification.", strategy: "Identify the String first. Add the Fret number to the open string's value. Remember B/C and E/F have no sharp/flat between them." },
+            'Name': { concept: "Pitch Identification.", strategy: "Identify the String first. Add the Fret number to the open string's value. You can use VOICE to answer (Click 🎙️)." },
             'Maj': { concept: "Major Triad: Root (1) + Major 3rd (3) + Perfect 5th (5).", strategy: "Visual Shape: Looks like a staircase on G-B-E strings. Happy, stable sound." },
             'Min': { concept: "Minor Triad: Root (1) + Minor 3rd (b3) + Perfect 5th (5).", strategy: "Visual Shape: The 3rd is flattened (moved down 1 fret) compared to Major. Sad sound." },
             '7': { concept: "Dominant 7th: Major Triad + Minor 7th (b7).", strategy: "Used in Blues. The 7th is 2 frets behind the octave root." },
@@ -599,6 +630,11 @@
         let totalQuestions = 0;
         let correctAnswers = 0;
         let totalTimeSpent = 0;
+
+        // VOICE
+        let recognition = null;
+        let isVoiceActive = false;
+        let isProcessingVoice = false; // Debounce flag
         
         /* --- CORE FUNCTIONS --- */
         function toggleTheme() {
@@ -621,6 +657,211 @@
             else updateHints();
         }
 
+        /* --- VOICE RECOGNITION SETUP (IMPROVED) --- */
+        const NOTE_HOMOPHONES = {
+            'see': 'c', 'sea': 'c', 'si': 'c', 'she': 'c', 'say': 'c',
+            'bee': 'b', 'be': 'b', 'bay': 'b',
+            'dee': 'd', 'die': 'd',
+            'eff': 'f', 'if': 'f',
+            'gee': 'g', 'je': 'g',
+            'ay': 'a', 'hey': 'a', 'hay': 'a',
+            'e': 'e', 'me': 'e',
+            'sharp': '#', 'flat': 'b' // Map 'sharp' and 'flat' to symbols early
+        };
+
+        function setupVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Sorry, your browser does not support Voice Recognition (Try Chrome or Edge).");
+                return false;
+            }
+            
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = true; 
+            recognition.interimResults = true; 
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const lastIdx = event.results.length - 1;
+                const result = event.results[lastIdx];
+                const transcript = result[0].transcript.trim();
+                
+                // Only process note answers on interim/final results for speed
+                // Only process commands like 'Next' on final results for stability
+                
+                if (result.isFinal) {
+                    handleVoiceCommand(transcript, true);
+                } else {
+                    handleVoiceCommand(transcript, false); // Handle potential fast note answers
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Voice Error:", event.error);
+                if (event.error === 'not-allowed') {
+                    isVoiceActive = false;
+                    updateVoiceUI();
+                    alert("Microphone access denied.");
+                }
+            };
+            
+            recognition.onend = () => {
+                if (isVoiceActive) recognition.start();
+            };
+
+            return true;
+        }
+
+        function toggleVoiceMode() {
+            if (!recognition) {
+                const supported = setupVoiceRecognition();
+                if (!supported) return;
+            }
+
+            isVoiceActive = !isVoiceActive;
+            
+            if (isVoiceActive) {
+                recognition.start();
+                if(currentMode !== 'name' && currentMode !== 'free') {
+                    document.getElementById('message-display').textContent = "Voice enabled! Say 'Next' to skip.";
+                }
+            } else {
+                recognition.stop();
+            }
+            updateVoiceUI();
+        }
+
+        function updateVoiceUI() {
+            const btn = document.getElementById('voice-btn');
+            if (isVoiceActive) {
+                btn.classList.add('listening');
+                btn.title = "Voice Listening... (Click to Stop)";
+            } else {
+                btn.classList.remove('listening');
+                btn.title = "Enable Voice Control";
+            }
+        }
+
+        function handleVoiceCommand(rawText, isFinal) {
+            // Debounce: If we just answered, ignore incoming stream for a moment
+            if (isProcessingVoice) return;
+
+            let text = rawText.toLowerCase().trim();
+
+            // 1. Check commands - ONLY on Final Results
+            if (isFinal && (text.includes('next') || text.includes('skip'))) {
+                isProcessingVoice = true;
+                nextQuestion();
+                setTimeout(() => isProcessingVoice = false, 1500); // Increased debounce time
+                return;
+            }
+
+            if (!isQuizActive || currentMode !== 'name') return;
+
+            // 2. Pre-process Homophones
+            let words = text.split(/\s+/);
+            let mappedWords = words.map(w => NOTE_HOMOPHONES[w] || w);
+            text = mappedWords.join(' '); // Keep spaces for sharp/flat detection
+            
+            // 3. Extract Valid Note (A-G with optional sharp/flat modifier)
+            let detectedNote = null;
+            // Regex: ([A-G]): Capture the base note (A-G). \s*: 0 or more spaces. (sharp|flat|#|b)?: Optional modifier.
+            const noteRegex = /([A-G])\s*(sharp|flat|#|b)?/i; 
+            const match = text.match(noteRegex);
+
+            if (match) {
+                let baseNote = match[1].toUpperCase();
+                let modifier = match[2] ? match[2].toLowerCase() : '';
+
+                if (modifier === 'sharp' || modifier === '#') {
+                    detectedNote = baseNote + '#';
+                } else if (modifier === 'flat' || modifier === 'b') {
+                    detectedNote = baseNote + 'b';
+                } else {
+                    detectedNote = baseNote;
+                }
+            }
+
+            if (detectedNote) {
+                checkVoiceAnswer(detectedNote);
+            }
+        }
+
+        function checkVoiceAnswer(note) {
+            if (!isQuizActive) return;
+
+            // Check against target
+            const target = targetNotes[0]; // e.g., "C#" or "Db"
+            
+            // Normalize for comparison (handle enharmonics)
+            let isCorrect = false;
+            
+            // Helper function to get the chromatic index (0-11)
+            const getIndex = (n) => {
+                let idx1 = NOTES.indexOf(n);
+                if (idx1 !== -1) return idx1;
+                let idx2 = FLAT_NOTES.indexOf(n);
+                // Try converting a sharp to a flat (e.g., C# to Db) if not found directly in NOTES
+                if(n.includes('#')) {
+                    const baseNoteIndex = NOTES.indexOf(n.slice(0, -1));
+                    if(baseNoteIndex !== -1) {
+                        const chromaticIndex = (baseNoteIndex + 1) % 12;
+                        return chromaticIndex; // Return the 0-11 index
+                    }
+                }
+                // Try converting a flat to a sharp (e.g., Db to C#) if not found directly in FLAT_NOTES
+                else if (n.includes('b')) {
+                    const baseNoteIndex = NOTES.indexOf(n.slice(0, -1));
+                    if(baseNoteIndex !== -1) {
+                        const chromaticIndex = (baseNoteIndex + 11) % 12; // Flat is -1 semitone
+                        return chromaticIndex; // Return the 0-11 index
+                    }
+                }
+                
+                return idx2 !== -1 ? idx2 : -1;
+            };
+
+            const targetIndex = getIndex(target);
+            const noteIndex = getIndex(note);
+            
+            // Check if the note is musically equivalent (handles C# vs Db)
+            if (targetIndex !== -1 && noteIndex !== -1 && targetIndex === noteIndex) {
+                isCorrect = true;
+            }
+
+            const msg = document.getElementById('message-display');
+            msg.textContent = `Heard: "${note}"`;
+            
+            // New Logic: If a valid note was heard, we must submit the answer.
+            if (isCorrect) {
+                isProcessingVoice = true; // Lock
+                
+                // Find the correct button based on the internal target note (e.g., "C#")
+                const correctBtn = document.querySelector(`.mc-button[data-answer="${target}"]`);
+                if(correctBtn) correctBtn.classList.add('correct-answer');
+                
+                msg.textContent += " ✅";
+                msg.style.color = "var(--highlight-green)";
+                winRound((Date.now() - startTime)/1000);
+                setTimeout(() => isProcessingVoice = false, 1500); // Unlock after delay
+            } else if (noteIndex !== -1) {
+                // The recognized note is a valid note name but is incorrect. Fail the question.
+                isProcessingVoice = true; // Lock
+                msg.textContent += " ❌";
+                msg.style.color = "var(--highlight-orange)";
+                
+                // Temporarily mark the multiple choice button if it exists (using the recognized note)
+                const incorrectBtn = document.querySelector(`.mc-button[data-answer="${note}"]`);
+                if(incorrectBtn) incorrectBtn.classList.add('wrong-answer');
+                
+                loseRound(); // Fail the round
+                setTimeout(() => isProcessingVoice = false, 1500); // Unlock after delay
+            } 
+            // If noteIndex is -1, it means the speech recognition picked up gibberish or a non-note word 
+            // (like "The" or "quick"), so we ignore it and wait for a clear note name.
+        }
+
+        /* --- STATS & HUD --- */
         function updateStatsDisplay() {
             const accuracy = totalQuestions > 0 ? ((correctAnswers / totalQuestions) * 100).toFixed(1) : '--';
             const avgSpeed = correctAnswers > 0 ? (totalTimeSpent / correctAnswers).toFixed(1) : '--';
@@ -650,21 +891,15 @@
         function changeSetting() {
             currentTuningName = document.getElementById('tuning-select').value;
             maxFrets = parseInt(document.getElementById('range-select').value);
-            updateStringLabels(); // Updates the checkbox text E-A-D-G-B-E
+            updateStringLabels(); 
             renderFretboard();
             const modeToStart = (currentMode === 'free' || currentMode === 'cof' || currentMode === 'key_builder') ? 'single' : currentMode;
             if(currentMode !== 'cof' && currentMode !== 'free' && currentMode !== 'key_builder') startQuiz(modeToStart); 
         }
 
-        /* --- LABEL UPDATER FOR CHECKBOXES --- */
         function updateStringLabels() {
             const indices = TUNING_INDICES[currentTuningName]; 
-            // indices array is [High E, B, G, D, A, Low E] order based on array structure:
-            // 0: High E, 1: B, 2: G, 3: D, 4: A, 5: Low E.
-            
             for(let i=0; i<6; i++) {
-                // DOM element IDs are str-lab-0 (High E) through str-lab-5 (Low E)
-                // We just match the index to the note name
                 const noteIndex = indices[i]; 
                 const noteName = NOTES[noteIndex];
                 const el = document.getElementById(`str-lab-${i}`);
@@ -764,6 +999,7 @@
             currentMode = mode;
             isQuizActive = (mode !== 'free');
             lastPlayedIndex = -1; 
+            isProcessingVoice = false; 
 
             // UI Setup
             document.getElementById('fretboard-wrapper').style.display = 'none';
@@ -771,16 +1007,16 @@
             document.getElementById('key-builder-wrapper').style.display = 'none';
             document.getElementById('mc-options').style.display = 'none';
             document.getElementById('replay-btn').style.display = 'none';
-            document.getElementById('target-note-display').style.display = 'block'; // Default show
+            document.getElementById('target-note-display').style.display = 'block'; 
             
             document.querySelectorAll('.filter-group').forEach(g => g.style.display = 'none');
             document.getElementById('clear-board-btn').style.display = 'none';
             
             if(mode === 'name') {
                 document.getElementById('note-pool-setting').style.display = 'flex';
-                document.getElementById('string-filters').style.display = 'flex'; // SHOW STRING FILTERS
+                document.getElementById('string-filters').style.display = 'flex'; 
                 document.getElementById('timer-setting').style.display = 'flex';
-                document.getElementById('target-note-display').style.display = 'none'; // HIDE BIG ?
+                document.getElementById('target-note-display').style.display = 'none'; 
             } else if (mode === 'chord') {
                 document.getElementById('chord-filters').style.display = 'flex';
             } else if (mode === 'scale' || mode === 'key_builder') {
@@ -865,43 +1101,38 @@
             if (mode === 'name') {
                 document.getElementById('replay-btn').style.display = 'block';
                 document.getElementById('mc-options').style.display = 'grid';
-                document.getElementById('message-display').textContent = "Identify the glowing note.";
                 
                 // --- NOTE POOL & STRING LOGIC ---
                 const poolType = document.getElementById('note-pool-select').value;
                 const activeStrings = Array.from(document.querySelectorAll('.string-chk:checked')).map(cb => parseInt(cb.value));
-
                 let validCoordinates = [];
-                
-                // Generate all valid string/fret pairs based on filters
                 for(let s=0; s<6; s++) {
-                    if(!activeStrings.includes(s)) continue; // Check string filter
+                    if(!activeStrings.includes(s)) continue;
                     for(let f=0; f<=maxFrets; f++) {
                         const note = getNote(s, f);
                         const isSharp = note.includes('#');
-                        
                         let isValid = false;
                         if(poolType === 'all') isValid = true;
                         else if(poolType === 'naturals' && !isSharp) isValid = true;
                         else if(poolType === 'accidentals' && isSharp) isValid = true;
                         else if(poolType === 'sharps' && isSharp) isValid = true;
-                        else if(poolType === 'flats' && isSharp) isValid = true; 
+                        else if(poolType === 'flats') isValid = true; // Flats pool includes ALL, but displays flats on MC
                         else if(poolType === 'anchors' && ANCHOR_FRETS.includes(f)) isValid = true;
-                        
                         if(isValid) validCoordinates.push({s, f, note});
                     }
                 }
-                
-                // Fallback if no valid notes (e.g. user unchecked everything)
                 if(validCoordinates.length === 0) validCoordinates.push({s:0, f:0, note:'E'}); 
                 
                 const selection = validCoordinates[Math.floor(Math.random() * validCoordinates.length)];
-                
                 targetNotes = [selection.note];
                 currentReplayFreq = calculateFrequency(selection.s, selection.f);
                 playTone(currentReplayFreq);
                 
-                // Highlight Spot 
+                // Check voice status for message
+                const msg = document.getElementById('message-display');
+                if(isVoiceActive) msg.textContent = "Listening... Say the note name or 'Next'.";
+                else msg.textContent = "Identify the glowing note.";
+
                 setTimeout(() => {
                     const spot = document.querySelector(`.note-spot[data-s="${selection.s}"][data-f="${selection.f}"]`);
                     if (spot) {
@@ -911,37 +1142,29 @@
                     }
                 }, 10);
                 
-                // MC Buttons
                 const mcDiv = document.getElementById('mc-options');
                 mcDiv.innerHTML = '';
-                
                 const showFlats = (poolType === 'flats');
                 
-                let correctAnswerLabel = targetNotes[0];
-                if(showFlats) {
-                    const idx = NOTES.indexOf(targetNotes[0]);
-                    correctAnswerLabel = FLAT_NOTES[idx];
-                }
-
-                // Generate distractors
                 let optsIdx = [NOTES.indexOf(targetNotes[0])];
                 while(optsIdx.length < 4) {
                     let r = Math.floor(Math.random() * 12);
                     if(!optsIdx.includes(r)) optsIdx.push(r);
                 }
                 shuffleArray(optsIdx);
-                
                 optsIdx.forEach(idx => {
+                    const noteInSharp = NOTES[idx];
+                    const noteToDisplay = showFlats ? FLAT_NOTES[idx] : noteInSharp;
+                    
                     const btn = document.createElement('button');
                     btn.className = 'mc-button';
-                    btn.textContent = showFlats ? FLAT_NOTES[idx] : NOTES[idx];
-                    btn.setAttribute('data-answer', NOTES[idx]);
+                    btn.textContent = noteToDisplay;
+                    btn.setAttribute('data-answer', noteInSharp); // Internal answer is always the sharp version
                     btn.onclick = handleMcAnswer;
                     mcDiv.appendChild(btn);
                 });
 
             } else {
-                // Single/Scale/Chord/All
                 if (mode === 'single' || mode === 'all') {
                     targetNotes = [rootNote];
                     document.getElementById('target-note-display').textContent = rootNote;
@@ -994,7 +1217,8 @@
         
         function handleMcAnswer(e) {
             if(!isQuizActive) return;
-            const selected = e.currentTarget.getAttribute('data-answer');
+            // The data-answer is always the sharp/standard name (e.g., C#)
+            const selected = e.currentTarget.getAttribute('data-answer'); 
             if(selected === targetNotes[0]) {
                 e.currentTarget.classList.add('correct-answer');
                 winRound((Date.now() - startTime)/1000);
@@ -1035,7 +1259,10 @@
                 }
                 else if (currentMode === 'all') {
                     foundCoordinates.push(spot);
-                    if(foundCoordinates.length >= 2) winRound((Date.now() - startTime)/1000); 
+                    // Check if all instances in the current range are found
+                    const allTargets = Array.from(document.querySelectorAll('.note-spot[data-note]'))
+                        .filter(s => targetNotes.includes(s.getAttribute('data-note')) && s.getAttribute('data-f') <= maxFrets && s.getAttribute('data-f') > 0);
+                    if(foundCoordinates.length >= allTargets.length) winRound((Date.now() - startTime)/1000); 
                 }
             } else {
                 spot.classList.add('incorrect');
@@ -1060,6 +1287,10 @@
             document.getElementById('streak-display').textContent = streak;
             document.getElementById('message-display').textContent = "Excellent! 🤘";
             document.getElementById('message-display').style.color = "var(--highlight-green)";
+            
+            // DELAY SUCCESS SOUND so the actual note can be heard first
+            setTimeout(() => playSuccessJingle(), 400);
+
             recordAnswer(true, time);
             document.querySelectorAll('.mc-button').forEach(b => b.onclick = null);
             if(currentMode === 'key_builder') revealKeyBuilderNotes();
@@ -1068,7 +1299,7 @@
         function loseRound() {
             isQuizActive = false; streak = 0;
             document.getElementById('streak-display').textContent = streak;
-            document.getElementById('message-display').textContent = "Incorrect.";
+            document.getElementById('message-display').textContent = "Incorrect. Try again!";
             document.getElementById('message-display').style.color = "var(--highlight-orange)";
             recordAnswer(false);
             playFailureWahWah();
@@ -1082,7 +1313,11 @@
                 });
                 // Show note on board
                 const t = document.querySelector('.highlighted-question');
-                if(t) t.textContent = targetNotes[0];
+                if(t) {
+                    t.textContent = targetNotes[0];
+                    t.classList.remove('highlighted-question');
+                    t.classList.add('revealed');
+                }
             }
         }
         
@@ -1120,7 +1355,7 @@
         
         function replayTargetTone() { if(currentReplayFreq) playTone(currentReplayFreq); }
         function resetTimer() { if(isQuizActive) startTimer(); }
-        function startTimer() { } // Simplified for snippet
+        function startTimer() { } // Simplified
         function stopTimer() { clearInterval(timerInterval); document.getElementById('timer-display').textContent = ''; }
         
         window.onload = () => { updateStringLabels(); renderFretboard(); }
